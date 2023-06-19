@@ -6,7 +6,7 @@
 ## Purpose: Wrapper for Dehydrated Acme client to simplify usage on F5 BIG-IP
 ##
 ## Usage:
-## - Execute: curl https://raw.githubusercontent.com/kevingstewart/simple-dehydrated-acme/install-f5.sh | bash
+## - Execute: curl https://raw.githubusercontent.com/kevingstewart/simple-dehydrated-acme/main/install.sh | bash
 ##
 
 ## Create working directory
