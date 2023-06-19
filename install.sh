@@ -6,7 +6,7 @@
 ## Purpose: Wrapper for Dehydrated Acme client to simplify usage on F5 BIG-IP
 ##
 ## Usage:
-## - Execute: curl -s https://raw.githubusercontent.com/kevingstewart/simple-dehydrated-acme/main/install.sh | bash
+## - Execute: curl -s https://raw.githubusercontent.com/kevingstewart/simple-dehydrated-acme-f5/main/install.sh | bash
 ##
 
 ## Create working directory
@@ -14,9 +14,9 @@ mkdir -p /shared/acme/wellknown > /dev/null 2>&1
 
 ## Download and place files
 curl -s https://raw.githubusercontent.com/dehydrated-io/dehydrated/master/dehydrated -o /shared/acme/dehydrated && chmod +x /shared/acme/dehydrated
-curl -s https://raw.githubusercontent.com/kevingstewart/simple-dehydrated-acme/main/config -o /shared/acme/config
-curl -s https://raw.githubusercontent.com/kevingstewart/simple-dehydrated-acme/main/domains.txt -o /shared/acme/domains.txt
-curl -s https://raw.githubusercontent.com/kevingstewart/simple-dehydrated-acme/main/hook_script_f5.sh -o /shared/acme/hook_script_f5.sh && chmod +x /shared/acme/hook_script_f5.sh
+curl -s https://raw.githubusercontent.com/kevingstewart/simple-dehydrated-acme-f5/main/config -o /shared/acme/config
+curl -s https://raw.githubusercontent.com/kevingstewart/simple-dehydrated-acme-f5/main/domains.txt -o /shared/acme/domains.txt
+curl -s https://raw.githubusercontent.com/kevingstewart/simple-dehydrated-acme-f5/main/hook_script_f5.sh -o /shared/acme/hook_script_f5.sh && chmod +x /shared/acme/hook_script_f5.sh
 
 ## Create BIG-IP data group
 tmsh create ltm data-group internal acme_handler_dg type string > /dev/null 2>&1
