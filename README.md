@@ -15,7 +15,7 @@ Full details on all Acme client capabilities cane be found on the [Dehydrated](h
 
 **To install, simply execute the following from a BIG-IP command shell**:
 ```
-curl -s https://raw.githubusercontent.com/kevingstewart/simple-dehydrated-acme/main/install.sh | bash
+curl -s https://raw.githubusercontent.com/kevingstewart/simple-dehydrated-acme-f5/main/install.sh | bash
 ```
 
 This will create the necessary file structure under /shared/acme, pull down the latest Dehydrated script and additional files, and create the required BIG-IP data group and iRule:
