@@ -1,4 +1,4 @@
-# Simple Dehydrated Acme Utility - for F5 BIG-IP
+# Simple Dehydrated Acme Utility for F5 BIG-IP
 
 ### A wrapper for the [Dehydrated](https://github.com/dehydrated-io/dehydrated) Acme client to simplify integration with F5 BIG-IP.
 
