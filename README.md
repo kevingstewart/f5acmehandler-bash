@@ -32,6 +32,8 @@ BIG-IP data group: /Common/acme_handler_dg
 BIG-IP iRule:      /Common/acme_handler_rule
 ```
 
+-----------------
+
 After installation, navigate to the /shared/acme folder.
 
 1. Edit the **domains.txt** file and add the set of domain URLs to be renewed via acme. Example:
