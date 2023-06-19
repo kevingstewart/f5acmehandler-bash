@@ -1,2 +1,1 @@
-foo2.internal
 www.f5labs.com
