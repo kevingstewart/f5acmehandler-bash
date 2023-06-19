@@ -9,6 +9,8 @@ This utility provides a simplified ACMEv2 integration to support certificate ren
 * The utility assumes that each BIG-IP cert/key is named as the corresponding domain. For example, if the domain URL is "www.f5labs.com", the certificate and private key are also called "www.f5labs.com".
 * The utility will also create a client SSL if missing. It assumes the name "$DOMAIN_clientssl" (ex. www.f5labs.com_clientssl), and will attach the associated certificate and private key. The Acme client utility can therefore run before any applications are created, to create the cert/key and client SSL profile, where the application can then consume the client SSL profile.
 
+Full details on all Acme client capabilities cane be found on the [Dehydrated](https://github.com/dehydrated-io/dehydrated) page.
+
 -----------------
 
 To install, simply execute the following from a BIG-IP command shell:
