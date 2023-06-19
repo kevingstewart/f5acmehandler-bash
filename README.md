@@ -35,10 +35,10 @@ BIG-IP iRule:      /Common/acme_handler_rule
 After installation, navigate to the /shared/acme folder.
 
 1. Edit the **domains.txt** file and add the set of domain URLs to be renewed via acme. Example:
-  ```
-  test1.f5labs.com
-  test2.f5labs.com
-  ```
+   ```
+   test1.f5labs.com
+   test2.f5labs.com
+   ```
 
 2. Ensure that a port 80 HTTP virtual server exists that represents each of the applied domain URLs. Apply the **acme_handler_rule** iRule to each of the port 80 HTTP virtual servers. For example, if a BIG-IP virtual server is created for a public facing HTTPS site, you must create a separate port 80 HTTP virtual server with the same destination IP (port 80), and assign an HTTP profile and the **acme_handler_rule** iRule. If a port 80 HTTP virtual server already exists for an application, perhaps as an HTTP-to-HTTPS redirect, then simply attach the **acme_handler_rule** iRule to this virtual server.
 
