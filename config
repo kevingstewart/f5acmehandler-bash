@@ -18,6 +18,7 @@
 #   --http1.1          = use HTTP/1.1
 #   -k                 = ignore certificate errors
 #   -x <proxy-url>     = use an explicit proxy
+#CURL_OPTS="--http1.1 -k -x 10.1.10.150:3128"
 CURL_OPTS="--http1.1 -k"
 
 # Default keysize for private keys (default: 4096)
@@ -75,36 +76,4 @@ WELLKNOWN="wellknown"
 
 
 
-########################################################
-## ADDITIONAL UNUSED SETTINGS ##########################
-########################################################
-
-# Which user should dehydrated run as? This will be implicitly enforced when running as root
-#DEHYDRATED_USER=
-
-# Which group should dehydrated run as? This will be implicitly enforced when running as root
-#DEHYDRATED_GROUP=
-
-# Resolve names to addresses of IP version only. (curl)
-# supported values: 4, 6
-# default: <unset>
-#IP_VERSION=
-
-# Chain clean_challenge|deploy_challenge arguments together into one hook call per certificate (default: no)
-#HOOK_CHAIN="no"
-
-# Regenerate private keys instead of just signing new certificates on renewal (default: yes)
-#PRIVATE_KEY_RENEW="yes"
-
-# Create an extra private key for rollover (default: no)
-#PRIVATE_KEY_ROLLOVER="no"
-
-# Lockfile location, to prevent concurrent access (default: $BASEDIR/lock)
-#LOCKFILE="${BASEDIR}/lock"
-
-# ACME API version (default: auto)
-#API=auto
-
-# Preferred issuer chain (default: <unset> -> uses default chain)
-#PREFERRED_CHAIN=
 
