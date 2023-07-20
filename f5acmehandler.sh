@@ -326,6 +326,9 @@ process_handler_main() {
    ACTIVE=$(tmsh show cm failover-status | grep ACTIVE | wc -l)
    if [[ "${ACTIVE}" = "1" ]]
    then
+      ## Create wellknown folder
+      mkdir /tmp/wellknown > /dev/null 2>&1
+      
       ## Read from the config data group and loop through keys:values
       config=true && [[ "$(tmsh list ltm data-group internal acme_config_dg 2>&1)" =~ "was not found" ]] && config=false
       if ($config)
