@@ -9,8 +9,12 @@
 ## ================================================== ##
 ## DEFINE COMMON VARIABLES ========================== ##
 ## ================================================== ##
-CREATEPROFILE=false           ## Set to true to generate new client SSL profiles with new certs/keys
-DEBUGLOG=true                 ## Set to true to generate debug logging (to stdout)
+ZEROCYCLE=3                      ## Set to preferred number of zeroization cycles for shredding created private keys
+
+CREATEPROFILE=false              ## Set to true to generate new client SSL profiles with new certs/keys
+DEBUGLOG=true                    ## Set to true to generate debug logging (to stdout)
+
+
 
 
 
@@ -76,7 +80,7 @@ deploy_cert() {
 
     ## Clean up and zeroize local storage (via shred)
     cd ${ACMEDIR}/certs/${DOMAIN}
-    find . -type f -print0 | xargs -0 shred -fuz
+    find . -type f -print0 | xargs -0 shred -fuz -n ${ZEROCYCLE}
     cd ${ACMEDIR}/
     rm -rf ${ACMEDIR}/certs/${DOMAIN}/
 
