@@ -5,6 +5,9 @@ services:
     image: letsencrypt/pebble:latest
     volumes:
       - ./:/configs
+    environment:
+      - "PEBBLE_ALTERNATE_ROOTS=1"
+      - "PEBBLE_VA_NOSLEEP=1"
     ports:
       - 14000:14000  # HTTPS ACME API
       - 15000:15000  # HTTPS Management API
