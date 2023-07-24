@@ -33,6 +33,10 @@ Blah
 ### Acme Protocol Flow
 Blah
 
+<details>
+<summary><b>Acme Protocol Flow Diagram</b></summary>
+</details>
+
 ------------
 ### Additional Configuration Options
 Blah
