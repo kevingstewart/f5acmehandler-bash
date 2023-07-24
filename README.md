@@ -14,7 +14,7 @@ This utility defines a wrapper for the Bash-based [Dehydrated](https://github.co
 * Supports debug logging
 
 ------------
-### Installation and Configuration
+### ${\textbf{\color{blue}Installation\ and\ Configuration}}$
 Blah
 
 <details>
@@ -30,7 +30,7 @@ Blah
 </details>
 
 ------------
-### Acme Protocol Flow
+### ${\textbf{\color{blue}Acme\ Protocol\ Flow}}$
 Blah
 
 <details>
@@ -38,7 +38,7 @@ Blah
 </details>
 
 ------------
-### Additional Configuration Options
+### ${\textbf{\color{blue}Additional\ Configuration\ Options}}$
 Blah
 
 <details>
@@ -54,11 +54,11 @@ Blah
 </details>
 
 ------------
-### Testing
+### ${\textbf{\color{blue}Testing}}$
 Blah
 
 ------------
-### Credits
+### ${\textbf{\color{blue}Credits}}$
 Blah
 
 
