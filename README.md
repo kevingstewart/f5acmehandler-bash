@@ -5,7 +5,7 @@
 This utility defines a wrapper for the Bash-based [Dehydrated](https://github.com/dehydrated-io/dehydrated) ACMEv2 client, supporting direct integration with F5 BIG-IP, and including advanced features:
 
 * Simple installation, configuration, and scheduling
-* Supports renewing with existing private keys to enable certificate automation in an HSM/FIPS environment
+* Supports renewal with existing private keys to enable certificate automation in HSM/FIPS environments
 * Supports per-domain configurations, and multiple Acme services
 * Supports External Account Binding (EAB)
 * Supports OCSP and periodic revocation testing
