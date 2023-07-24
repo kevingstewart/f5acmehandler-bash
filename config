@@ -39,11 +39,6 @@ OCSP_MUST_STAPLE="yes"
 ## ADVANCED SETTINGS ###################################
 ########################################################
 
-# URL to certificate authority or internal preset (overridden by --ca commandline option)
-# Presets: letsencrypt, letsencrypt-test, zerossl, buypass, buypass-test
-# default: letsencrypt
-#CA="letsencrypt"
-
 # Minimum days before expiration to automatically renew certificate (default: 30)
 #RENEW_DAYS="30"
 
