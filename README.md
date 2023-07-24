@@ -1,8 +1,67 @@
-# Simple Dehydrated Acme Utility for F5 BIG-IP
+# Acme Certificate Renewal Utility for F5 BIG-IP
 
-### A wrapper for the [Dehydrated](https://github.com/dehydrated-io/dehydrated) Acme client to simplify integration with F5 BIG-IP.
+### An Acme client wrapper function for integration and advanced features on the F5 BIG-IP
 
-This utility provides a simplified ACMEv2 integration to support certificate renewal on the BIG-IP, using the popular Dehydrated Acme client. The implementation follows the below pattern:
+This utility defines a wrapper for the Bash-based [Dehydrated](https://github.com/dehydrated-io/dehydrated) ACMEv2 client, supporting direct integration with F5 BIG-IP, and including advanced features:
+
+* Simple installation, configuration, and scheduling
+* Supports renewing with existing private keys to enable certificate automation in an HSM/FIPS environment
+* Supports per-domain configurations, and multiple Acme services
+* Supports External Account Binding (EAB)
+* Supports OCSP and periodic revocation testing
+* Supports explicit proxy egress
+* Supports SAN certificate renewal
+* Supports debug logging
+
+------------
+### Installation and Configuration
+Blah
+
+<details>
+<summary><b>Global Configuration Options</b></summary>
+</details>
+
+<details>
+<summary><b>Acme Dehydrated Client Configuration Options</b></summary>
+</details>
+
+<details>
+<summary><b>Utility Function Command Line Options</b></summary>
+</details>
+
+------------
+### Acme Protocol Flow
+Blah
+
+------------
+### Additional Configuration Options
+Blah
+
+<details>
+<summary><b>External Account Binding (EAB)</b></summary>
+</details>
+
+<details>
+<summary><b>OCSP and Periodic Revocation Testing</b></summary>
+</details>
+
+<details>
+<summary><b>BIG-IQ Support</b></summary>
+</details>
+
+------------
+### Testing
+Blah
+
+------------
+### Credits
+Blah
+
+
+
+------------
+------------
+
 
 * The Dehydrated Acme client is installed in a local BIG-IP working directory and scheduled to run at specified intervals (on the Active BIG-IP only).
 * When the Acme client is triggered, it generates a series of events that call the **hook_script_f5.sh** Bash script. The first event (deploy_challenge) creates a data group entry based on the Acme server's http-01 challenge. The Acme server will then attempt to verify the challenge. The HTTP request arrives at a port 80 HTTP virtual server, and the attached iRule responds with the challenge information acquired from the data group. The second event (clean_challenge) is triggered after a successful Acme server challenge, and is used to remove the data group entry. A final event (deploy_cert) is then called, which takes the new certificate and private key from the local "certs" working directory, and pushes these into the BIG-IP cert/key store.
