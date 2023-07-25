@@ -13,38 +13,48 @@ This utility defines a wrapper for the Bash-based [Dehydrated](https://github.co
 * Supports SAN certificate renewal
 * Supports debug logging
 
+<br />
+
 ------------
 ### ${\textbf{\color{blue}Installation\ and\ Configuration}}$
 Installation to the BIG-IP is simple. The only constraint is that the certificate objects installed on the BIG-IP **must** be named after the certificate subject name. For example, if the certificate subject name is ```www.f5labs.com```, then the installed certificate and key must also be named ```www.f5labs.com```. Certificate automation is predicated on this naming construct. 
 
-1. SSH to the BIG-IP shell and run the following command to install the required components:
+* **Step 1**: SSH to the BIG-IP shell and run the following command to install the required components:
 
     ```
     curl -s https://raw.githubusercontent.com/kevingstewart/f5acmehandler-bash/main/install.sh | bash
     ```
 
-2. Update the new ```acme_config_dg``` data group and add entries for each managed domain (certificate subject). See the **Global Configuration Options** section
+* **Step 2**: Update the new ```acme_config_dg``` data group and add entries for each managed domain (certificate subject). See the **Global Configuration Options** section
    below for additional details.
 
-3. Adjust the client configuration ```config``` file as needed for your environment. This utility allows for per-domain configurations, for example, when EAB is needed for some providers, but not others. See the **Acme Dehydrated Client Configuration Options** section below for additional details.
+    ```
+    www.foo.com := --ca https://acme-v02.api.letsencrypt.org/directory
+    www.bar.com := --ca https://acme.zerossl.com/v2/DV90 --config /shared/acme/config_www_example_com
+    www.baz.com := --ca https://acme.locallab.com:9000/directory -a rsa
+    ```
 
-4. Run the following command in ```/shared/acme``` whenever the data group is updated. This command will check the validity of the configuration data group, and
-   register any providers not already registered.
+* **Step 3**: Adjust the client configuration ```config``` file as needed for your environment. This utility allows for per-domain configurations, for example, when EAB is needed for some providers, but not others. See the **Acme Dehydrated Client Configuration Options** section below for additional details.
+
+* **Step 4**: Run the following command in ```/shared/acme``` whenever the data group is updated. This command will check the validity of the configuration data group, and
+   register any providers not already registered. See the **Utility Function Command Line Options** section below for additional details.
 
     ```
     ./f5acmehandler --init
     ```
 
-6. Initiate an Acme fetch. This command will loop through the data group and perform required Acme certificate renewal operations for each configured domain.
+* **Step 5**: Initiate an Acme fetch. This command will loop through the data group and perform required Acme certificate renewal operations for each configured domain. By default, if no certificate and key         exists, Acme renewal will generate a new certificate and key. If a private key exists, a CSR is generated from that existing key to renew the certificate only. This it to support HSM/FIPS environments, but can    be disabled. See the **Miscellaneous Configuration Options** section below for additional details.
 
     ```
     ./f5acmehandler
     ```
 
-7. Define scheduling. See the **Scheduling** section below for additional details.
+* **Step 6**: Define scheduling. See the **Scheduling** section below for additional details.
 
 <br />
 
+------------
+### ${\textbf{\color{blue}Configuration\ Details}}$
 
 <details>
 <summary><b>Global Configuration Options</b></summary>
@@ -100,16 +110,23 @@ The f5acmehandler also supports a set of commandline options:
 | **Command Option** | **Description**                                                                                  |
 |--------------------|--------------------------------------------------------------------------------------------------|
 | --force            | Overrides the default certificate renewal threshhold check (default 30 days)                     |
-| --domain           | Performs Acme renewal functions for a single specified domain. Can be combined with --force      |
-| --init             | Performs validation checks. Use this command after modifying the global configuration data group |                                                                
+| --domain           | Performs Acme renewal functions for a single specified domain. Can be combined with --force<br />Examples:<br />--domain www.foo.com<br />--domain www.bar.com --force      |
+| --init             | Performs validation checks. Use this command after modifying the global configuration data group<br />- Checks for certificate associate to a client SSL profile<br />- Checks for client SSL profile association to an HTTPS virtual server<br />- Checks for HTTP VIP listening on same HTTPS virtual server IP<br />- Creates HTTP VIP is HTTPS VIP exists<br />- Registers any newly-defined Acme providers |                                                                
 | --help             | Shows the help information for above command options                                             |
+
 
 
 </details>
 
 <details>
-<summary><b>Scheduling</b></summary>
+<summary><b>Scheduling Options</b></summary>
 </details>
+
+<details>
+<summary><b>Miscellaneous Configuration Options</b></summary>
+</details>
+
+<br />
 
 ------------
 ### ${\textbf{\color{blue}Acme\ Protocol\ Flow}}$
@@ -118,6 +135,8 @@ Blah
 <details>
 <summary><b>Acme Protocol Flow Diagram</b></summary>
 </details>
+
+<br />
 
 ------------
 ### ${\textbf{\color{blue}Additional\ Configuration\ Options}}$
@@ -135,14 +154,19 @@ Blah
 <summary><b>BIG-IQ Support</b></summary>
 </details>
 
+<br />
+
 ------------
 ### ${\textbf{\color{blue}Testing}}$
 Blah
+
+<br />
 
 ------------
 ### ${\textbf{\color{blue}Credits}}$
 Blah
 
+<br />
 
 
 ------------
