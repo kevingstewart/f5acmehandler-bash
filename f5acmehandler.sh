@@ -47,7 +47,7 @@ generate_new_cert_key() {
 
    cmd="${ACMEDIR}/dehydrated ${STANDARD_OPTIONS} -c -g -d ${DOMAIN} $(echo ${COMMAND} | tr -d '"')"
    process_errors "DEBUG (handler: ACME client command):\n$cmd\n"
-   do=$(eval $cmd 2>&1 | cat | sed 's/^/   /')
+   do=$(eval $cmd 2>&1 | cat | sed 's/^/    /')
    process_errors "DEBUG (handler: ACME client output):\n$do\n"
 }
 
@@ -78,12 +78,12 @@ generate_cert_from_csr() {
    ## Issue acme client call and dump renewed cert to certs/{domain}/cert.pem
    cmd="${ACMEDIR}/dehydrated ${STANDARD_OPTIONS} -s ${ACMEDIR}/certs/${DOMAIN}/cert.csr $(echo ${COMMAND} | tr -d '"')"
    process_errors "DEBUG (handler: ACME client command):\n   $cmd\n"
-   do=$(eval $cmd 2>&1 | cat | sed 's/^/   /')
+   do=$(eval $cmd 2>&1 | cat | sed 's/^/    /')
    process_errors "DEBUG (handler: ACME client output):\n$do\n"
 
    if [[ $do =~ "# CERT #" ]]
    then
-      cat $do 2>&1 | sed -n '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p;/-END CERTIFICATE-/q' > ${ACMEDIR}/certs/${DOMAIN}/cert.pem
+      cat $do 2>&1 | sed -n '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p;/-END CERTIFICATE-/q' | sed -E 's/^\s+//g' > ${ACMEDIR}/certs/${DOMAIN}/cert.pem
    else
       process_errors "ERROR: ACME client failure: $do\n"
       return
@@ -221,7 +221,7 @@ process_handler_init() {
                found_profile=$(echo $certlist | grep $DOMAIN | awk -F"=" '{print $1}')
                # init_report="${init_report}  -- (${DOMAIN}):\tA client SSL profile exists (${found_profile}), but is not attached to any virtual server\n"
                init_report="${init_report}\tERROR: A client SSL profile exists (${found_profile}), but is not attached to any virtual server\n"
-               continue
+               # continue
             else
                ## False: matching client SSL profile AND assigned VIP
                found_vip=$(tmsh -q list ltm virtual recursive one-line | grep www.f5labs.com_clientssl | sed -E 's/ltm virtual ([^[:space:]]+)\s.*/\1/g')
@@ -266,7 +266,7 @@ process_handler_init() {
             ## False: no matching client SSL profile - fail/report
             # init_report="${init_report}  -- (${DOMAIN}):\tNo client SSL profile exists. No additional actions performed.\n"
             init_report="${init_report}\tERROR: No client SSL profile exists. No additional actions performed.\n"
-            continue
+            # continue
          fi
 
          
