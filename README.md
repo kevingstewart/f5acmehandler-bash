@@ -1,12 +1,12 @@
-# Acme Certificate Renewal Utility for F5 BIG-IP
+# ACME Certificate Renewal Utility for F5 BIG-IP
 
-### An Acme client wrapper function for integration and advanced features on the F5 BIG-IP
+### An ACMEv2 client wrapper function for integration and advanced features on the F5 BIG-IP
 
-This utility defines a wrapper for the Bash-based [Dehydrated](https://github.com/dehydrated-io/dehydrated) ACMEv2 client, supporting direct integration with F5 BIG-IP, and including advanced features:
+This utility defines a wrapper for the Bash-based [Dehydrated](https://github.com/dehydrated-io/dehydrated) ACMEv2 client, supporting direct integration with F5 BIG-IP, and including additional advanced features:
 
 * Simple installation, configuration, and scheduling
 * Supports renewal with existing private keys to enable certificate automation in HSM/FIPS environments
-* Supports per-domain configurations, and multiple Acme services
+* Supports per-domain configurations, and multiple ACME services
 * Supports External Account Binding (EAB)
 * Supports OCSP and periodic revocation testing
 * Supports explicit proxy egress
@@ -19,14 +19,16 @@ This utility defines a wrapper for the Bash-based [Dehydrated](https://github.co
 ### ${\textbf{\color{blue}Installation\ and\ Configuration}}$
 Installation to the BIG-IP is simple. The only constraint is that the certificate objects installed on the BIG-IP **must** be named after the certificate subject name. For example, if the certificate subject name is ```www.f5labs.com```, then the installed certificate and key must also be named ```www.f5labs.com```. Certificate automation is predicated on this naming construct. 
 
-* **Step 1**: SSH to the BIG-IP shell and run the following command to install the required components:
+<br />
+
+* **Step 1**: SSH to the BIG-IP shell and run the following command. This will install all required components.
 
     ```
     curl -s https://raw.githubusercontent.com/kevingstewart/f5acmehandler-bash/main/install.sh | bash
     ```
 
-* **Step 2**: Update the new ```acme_config_dg``` data group and add entries for each managed domain (certificate subject). See the **Global Configuration Options** section
-   below for additional details.
+* **Step 2**: Update the new ```acme_config_dg``` data group and add entries for each managed domain (certificate subject). See the **Global 
+Configuration Options** section below for additional details. Examples:
 
     ```
     www.foo.com := --ca https://acme-v02.api.letsencrypt.org/directory
@@ -34,23 +36,23 @@ Installation to the BIG-IP is simple. The only constraint is that the certificat
     www.baz.com := --ca https://acme.locallab.com:9000/directory -a rsa
     ```
 
-* **Step 3**: Adjust the client configuration ```config``` file as needed for your environment. This utility allows for per-domain configurations, for example, when EAB is needed for some providers, but not others. See the **Acme Dehydrated Client Configuration Options** section below for additional details.
+* **Step 3**: Adjust the client configuration ```config``` file as needed for your environment. In most cases you'll only need a single client config file, but this utility allows for per-domain configurations. For example, you can define separate config files when EAB is needed for some provider(s), but not others. See the **ACME Dehydrated Client Configuration Options** section below for additional details.
 
-* **Step 4**: Run the following command in ```/shared/acme``` whenever the data group is updated. This command will check the validity of the configuration data group, and
-   register any providers not already registered. See the **Utility Function Command Line Options** section below for additional details.
+* **Step 4**: Optionally run the following command in ```/shared/acme``` whenever the data group is updated. This command will check the validity of the configuration data group, and register any providers not already registered. See the **Utility Function Command Line Options** section below for additional details.
 
     ```
     ./f5acmehandler --init
     ```
 
-* **Step 5**: Initiate an Acme fetch. This command will loop through the data group and perform required Acme certificate renewal operations for each configured domain. By default, if no certificate and key         exists, Acme renewal will generate a new certificate and key. If a private key exists, a CSR is generated from that existing key to renew the certificate only. This it to support HSM/FIPS environments, but can    be disabled. See the **Miscellaneous Configuration Options** section below for additional details.
+* **Step 5**: Initiate an ACME fetch. This command will loop through the ```acme_config_dg``` data group and perform required ACME certificate renewal operations for each configured domain. By default, if no certificate and key exists, ACME renewal will generate a new certificate and key. If a private key exists, a CSR is generated from the existing key to renew the certificate only. This it to support HSM/FIPS environments, but can be disabled. See the **Utility Function Command Line Options** and **Miscellaneous Configuration Options** sections below for additional details.
 
     ```
     ./f5acmehandler
     ```
 
-* **Step 6**: Define scheduling. See the **Scheduling** section below for additional details.
+* **Step 6**: Once all configuration updates have been made and the utility function is working as desired, define scheduling to automate the process. By default, each domain (certificate) is checked against the defined threshold (default: 30 days) and only continues if the threshold is exceeded. See the **Scheduling** section below for additional details.
 
+    TODO...
 <br />
 
 ------------
@@ -65,7 +67,7 @@ Global configuration options are specified in the ```acme_config_dg``` data grou
 
 | **Value Options** | **Description**                                 | **Examples**                                                                       | **Required**|
 |-------------------|-------------------------------------------------|------------------------------------------------------------------------------------|-------------|
-| --ca              | Defines the Acme provider URL                   | --ca https://acme-v02.api.letsencrypt.org/directory           (Let's Encrypt)<br />--ca https://acme-staging-v02.api.letsencrypt.org/directory   (LE Staging)<br />--ca https://acme.zerossl.com/v2/DV90                         (ZeroSSL)<br />--ca https://api.buypass.com/acme/directory                   (Buypass)<br />--ca https://api.test4.buypass.no/acme/directory              (Buypass Test)       |     Yes     |
+| --ca              | Defines the ACME provider URL                   | --ca https://acme-v02.api.letsencrypt.org/directory           (Let's Encrypt)<br />--ca https://acme-staging-v02.api.letsencrypt.org/directory   (LE Staging)<br />--ca https://acme.zerossl.com/v2/DV90                         (ZeroSSL)<br />--ca https://api.buypass.com/acme/directory                   (Buypass)<br />--ca https://api.test4.buypass.no/acme/directory              (Buypass Test)       |     Yes     |
 | --config          | Defines an alternate config file<br />(default /shared/acme/config)                | --config /shared/acme/config_www_f5labs_com                                        |     No      |
 | -a                | Overrides the required leaf certificate<br />algorithm specified in the config file.<br />Options:<br />- rsa<br />- prime256v1<br />- secp384r1         | -a rsa<br />-a prime256v1<br />-a secp384r1                                                                             |     No      |   
 
@@ -77,15 +79,13 @@ Examples:
 www.foo.com := --ca https://acme-v02.api.letsencrypt.org/directory
 www.bar.com := --ca https://acme.zerossl.com/v2/DV90 --config /shared/acme/config_www_example_com
 www.baz.com := --ca https://acme.locallab.com:9000/directory -a rsa
-
 ```
-
 </details>
 
 <details>
-<summary><b>Acme Dehydrated Client Configuration Options</b></summary>
+<summary><b>ACME Dehydrated Client Configuration Options</b></summary>
 
-Within the ```/shared/acme/config``` file are a number of additional client attributes. This utility allows for per-domain configurations, for example, when EAB is needed for some providers, but not others.
+Within the ```/shared/acme/config``` file are a number of additional client attributes. This utility allows for per-domain configurations, for example, when EAB is needed for some providers, but not others. Adjust the following atttributes as required for your Acme provider(s).
 
 | **Config Options**    | **Description**                                                                             |
 |-----------------------|---------------------------------------------------------------------------------------------|
@@ -98,156 +98,133 @@ Within the ```/shared/acme/config``` file are a number of additional client attr
 | OCSP_FETCH            | Fetch OCSP responses (default: no)                                                          |
 | OCSP_DAYS             | OCSP refresh interval (default: 5 days)                                                     |
 | EAB_KID/EAB_HMAC_KEY  | Extended Account Binding (EAB) support                                                      |
-
-
 </details>
 
 <details>
 <summary><b>Utility Function Command Line Options</b></summary>
 
-The f5acmehandler also supports a set of commandline options:
+The ```f5acmehandler.sh``` utility script also supports a set of commandline options for general maintenance usage. When no command options are specified, the utility loops through the ```acme_config_dg``` data group and performs required ACME certificate renewal operations for each configured domain.
 
 | **Command Option** | **Description**                                                                                  |
 |--------------------|--------------------------------------------------------------------------------------------------|
 | --force            | Overrides the default certificate renewal threshhold check (default 30 days)                     |
-| --domain           | Performs Acme renewal functions for a single specified domain. Can be combined with --force<br />Examples:<br />--domain www.foo.com<br />--domain www.bar.com --force      |
-| --init             | Performs validation checks. Use this command after modifying the global configuration data group<br />- Checks for certificate associate to a client SSL profile<br />- Checks for client SSL profile association to an HTTPS virtual server<br />- Checks for HTTP VIP listening on same HTTPS virtual server IP<br />- Creates HTTP VIP is HTTPS VIP exists<br />- Registers any newly-defined Acme providers |                                                                
+| --domain           | Performs ACME renewal functions for a single specified domain. Can be combined with --force<br />Examples:<br />--domain www.foo.com<br />--domain www.bar.com --force      |
+| --init             | Performs validation checks. Optionally use this command after modifying the global configuration data group<br />- Checks for certificate association to a client SSL profile<br />- Checks for client SSL profile association to an HTTPS virtual server<br />- Checks for HTTP VIP listening on same HTTPS virtual server IP<br />- Creates HTTP VIP if HTTPS VIP exists<br />- Registers any newly-defined ACME providers |                                                                
 | --help             | Shows the help information for above command options                                             |
-
-
-
 </details>
 
 <details>
 <summary><b>Scheduling Options</b></summary>
+TODO
 </details>
 
 <details>
 <summary><b>Miscellaneous Configuration Options</b></summary>
+
+The following additional values are defined directly within the ```f5acmehandler.sh``` utility script. Adjust only as required.
+
+| **Command Option**   | **Description**                                                                                                |
+|----------------------|----------------------------------------------------------------------------------------------------------------|
+| THRESHOLD            | Threshold in days when a certificate must be renewed (default 30 days)                                         |
+| ALWAYS_GENERATE_KEY  | Set to true to always generate a private key. Otherwise a CSR is created from an existing key (default: false) |
+| ERRORLOG             | Set to true to generate error logging (to LOGFILE) (default: true)                                             |
+| DEBUGLOG             | Set to true to generate debug logging (to LOGFILE) (default: false)                                            |
+| LOGFILE              | Set to location of the error/debug log (default: /var/log/acmehandler)                                         |
 </details>
 
 <br />
 
 ------------
-### ${\textbf{\color{blue}Acme\ Protocol\ Flow}}$
+### ${\textbf{\color{blue}ACME\ Protocol\ Flow}}$
 Blah
 
 <details>
-<summary><b>Acme Protocol Flow Diagram</b></summary>
+<summary><b>ACME Protocol Flow Diagram</b></summary>
+
+TODO
 </details>
 
 <br />
 
 ------------
 ### ${\textbf{\color{blue}Additional\ Configuration\ Options}}$
-Blah
+Below are descriptions of additional features and environment options.
 
 <details>
 <summary><b>External Account Binding (EAB)</b></summary>
+
+External Account Binding (EAB) "pre-authentication" is defined in the [ACME RFC](https://datatracker.ietf.org/doc/html/rfc8555#section-7.3.4). This is used to associate an ACME account with an existing account in a non-ACME system. The CA operating the ACME server provides a **MAC Key** and **Key Identifier**, which must be included in the ACME client registration process. The client MAC and Key ID are specified within the ```/shared/acme/config``` file. Example:
+
+```
+# Extended Account Binding (EAB) support
+EAB_KID=keyid_00
+EAB_HMAC_KEY=bWFjXzAw
+```
 </details>
 
 <details>
 <summary><b>OCSP and Periodic Revocation Testing</b></summary>
+TODO
 </details>
 
 <details>
 <summary><b>BIG-IQ Support</b></summary>
+TODDO
 </details>
 
 <br />
 
 ------------
 ### ${\textbf{\color{blue}Testing}}$
-Blah
+There are a number of ways to test the ```f5acmehandler``` utility, including validation against local ACME services. The **acme-servers** folder contains Docker-Compose options for spinning up local **Smallstep Step-CA** and **Pebble** ACME servers. The following describes a very simple testing scenario using one of these tools.
+
+* Install the **Smallstep Step-CA** ACME server instance on a Linux machine. Adjust the local /etc/hosts DNS entries at the bottom of the docker-compose YAML file accordingly to allow the ACME server to locally resolve your ACME client instance (BIG-IP VIP). This command will create a service listening on HTTPS port 9000.
+
+    ```
+    git clone https://github.com/kevingstewart/f5acmehandler-bash.git
+    cd f5acmehandler-bash/acme-servers/
+    docker-compose -f docker-compose-smallstep-ca.yaml up -d
+    ```
+
+* Install the f5acmehandler utility components on the BIG-IP instance.
+
+    ```
+    curl -s https://raw.githubusercontent.com/kevingstewart/f5acmehandler-bash/main/install.sh | bash
+    ```
+
+* Update the ```acme_config_dg``` data group and add an entry for each domain (certificate). This should match each /etc/hosts domain entry specified in the docker-compose file.
+
+    ```
+    www.foo.com := --ca https://<acme-server-ip>:9000/acme/acme/directory
+    www.bar.com := --ca https://<acme-server-ip>:9000/acme/acme/directory -a rsa
+    ```
+  
+* Trigger the f5acmehandler ```--init``` function to validate the config data group and register the client to this provider. Initially you will need to minimally create an HTTP VIP for each of the domains (as specified in the /etc/hosts file above), and apply the ```acme_handler_rule``` iRule to that VIP.
+
+    ```
+    ./f5acmehandler --init
+    ```
+    
+* Trigger an initial ACME certificate fetch. This will loop through the ```acme_config_dg``` data group and process ACME certificate renewal for each domain. In this case, it will create both the certificate and private key and install these to the BIG-IP.
+
+    ```
+    ./f5acmehandler
+    ```
 
 <br />
 
 ------------
 ### ${\textbf{\color{blue}Credits}}$
-Blah
+Special thanks to @f5-rahm and his [lets-encrypt-python](https://github.com/f5devcentral/lets-encrypt-python) project for inspiration.
 
+<br />
+<br />
 <br />
 
 
-------------
-------------
 
 
-* The Dehydrated Acme client is installed in a local BIG-IP working directory and scheduled to run at specified intervals (on the Active BIG-IP only).
-* When the Acme client is triggered, it generates a series of events that call the **hook_script_f5.sh** Bash script. The first event (deploy_challenge) creates a data group entry based on the Acme server's http-01 challenge. The Acme server will then attempt to verify the challenge. The HTTP request arrives at a port 80 HTTP virtual server, and the attached iRule responds with the challenge information acquired from the data group. The second event (clean_challenge) is triggered after a successful Acme server challenge, and is used to remove the data group entry. A final event (deploy_cert) is then called, which takes the new certificate and private key from the local "certs" working directory, and pushes these into the BIG-IP cert/key store.
-* The utility assumes that each BIG-IP cert/key is named as the corresponding domain. For example, if the domain URL is "www.f5labs.com", the certificate and private key are also called "www.f5labs.com".
-* The utility will also create a client SSL if missing. It assumes the name "$DOMAIN_clientssl" (ex. www.f5labs.com_clientssl), and will attach the associated certificate and private key. The Acme client utility can therefore run before any applications are created, to create the cert/key and client SSL profile, where the application can then consume the client SSL profile.
 
-Full details on all Acme client capabilities cane be found on the [Dehydrated](https://github.com/dehydrated-io/dehydrated) page.
-
------------------
-
-**To install, simply execute the following from a BIG-IP command shell**:
-```
-curl -s https://raw.githubusercontent.com/kevingstewart/f5acmehandler-bash/main/install.sh | bash
-```
-
-This will create the necessary file structure under /shared/acme, pull down the latest Dehydrated script and additional files, and create the required BIG-IP data group and iRule:
-
-```
-Files/Folders:
-/shared/acme/wellknown/
-             dehydrated
-             config
-             domains.txt
-             hook_script_f5.sh
-
-BIG-IP data group: /Common/acme_handler_dg
-BIG-IP iRule:      /Common/acme_handler_rule
-```
-
------------------
-
-After installation, navigate to the /shared/acme folder.
-
-1. Edit the **domains.txt** file and add the set of domain URLs to be renewed via acme. Example:
-   ```
-   test1.f5labs.com
-   test2.f5labs.com
-   ```
-
-2. Ensure that a port 80 HTTP virtual server exists that represents each of the applied domain URLs. Apply the **acme_handler_rule** iRule to each of the port 80 HTTP virtual servers. For example, if a BIG-IP virtual server is created for a public facing HTTPS site, you must create a separate port 80 HTTP virtual server with the same destination IP (port 80), and assign an HTTP profile and the **acme_handler_rule** iRule. If a port 80 HTTP virtual server already exists for an application, perhaps as an HTTP-to-HTTPS redirect, then simply attach the **acme_handler_rule** iRule to this virtual server.
-
-3. As noted above, this utility assumes the certificate and key are named as the domain URL (ex. www.f5labs.com), and the client SSL profile as "$DOMAIN_clientssl" (ex. www.f5labs.com_clientssl).
-
-4. The default configuration specifies LetsEncrypt as the Acme CA target. To change that, edit the **config** file and adjust the value for **CA=**:
-   ```
-   CA="buypass"
-   ```
-
-5. Perform an initial registration to the Acme server:
-   ```
-   ./dehydrated --register --accept-terms
-   ```
-   If using a non-standard Acme CA, you can specify the CA URL in the registration:
-   ```
-   ./dehydrated --register --accept-terms --ca "https://172.16.0.25:9000/acme/acme/directory"
-   ```
-
-6. Finally, to initiate a request to the Acme server:
-   ```
-   ./dehydrated -c 
-   ```
-   If using a non-standard Acme CA, you can specify the URL:
-   ```
-   ./dehydrated -c --ca "https://172.16.0.25:9000/acme/acme/directory"
-   ```
-   The Dehydrated client will default to ECC certificates. To switch to RSA certificates, use the **-a rsa** option:
-   ```
-   ./dehydrated -c -a rsa
-   ```
-   And to force an update, use the **-x** option:
-   ```
-   ./dehydrated -c -x
-   ```
-   This will create a new **certs** folder under the /shared/acme working directory, and a subfolder under this named after each domain URL. Inside each of these will be the certificate (cert.pem), private key (privkey.pem), the issuer CA certificate (chain.pem), and a bundle of all certs, subject and issuer (fullchain.pem). The Acme client calls the deploy_cert event in the hook_script_f5.sh Bash script, and moves the new certificate and private key to the BIG-IP cert/key store.
-   
-7. To set a schedule...
 
 
 
