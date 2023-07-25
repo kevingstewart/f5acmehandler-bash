@@ -15,18 +15,100 @@ This utility defines a wrapper for the Bash-based [Dehydrated](https://github.co
 
 ------------
 ### ${\textbf{\color{blue}Installation\ and\ Configuration}}$
-Blah
+Installation to the BIG-IP is simple. The only constraint is that the certificate objects installed on the BIG-IP **must** be named after the certificate subject name. For example, if the certificate subject name is ```www.f5labs.com```, then the installed certificate and key must also be named ```www.f5labs.com```. Certificate automation is predicated on this naming construct. 
+
+1. SSH to the BIG-IP shell and run the following command to install the required components:
+
+    ```
+    curl -s https://raw.githubusercontent.com/kevingstewart/f5acmehandler-bash/main/install.sh | bash
+    ```
+
+2. Update the new ```acme_config_dg``` data group and add entries for each managed domain (certificate subject). See the **Global Configuration Options** section
+   below for additional details.
+
+3. Adjust the client configuration ```config``` file as needed for your environment. This utility allows for per-domain configurations, for example, when EAB is needed for some providers, but not others. See the **Acme Dehydrated Client Configuration Options** section below for additional details.
+
+4. Run the following command in ```/shared/acme``` whenever the data group is updated. This command will check the validity of the configuration data group, and
+   register any providers not already registered.
+
+    ```
+    ./f5acmehandler --init
+    ```
+
+6. Initiate an Acme fetch. This command will loop through the data group and perform required Acme certificate renewal operations for each configured domain.
+
+    ```
+    ./f5acmehandler
+    ```
+
+7. Define scheduling. See the **Scheduling** section below for additional details.
+
+<br />
+
 
 <details>
 <summary><b>Global Configuration Options</b></summary>
+
+Global configuration options are specified in the ```acme_config_dg``` data group for each domain (certificate subject). Each entry in the data group must include a **String**: the domain name (ex. www.f5labs.com), and a **Value** consisting of a number of configuration options:
+
+<br />
+
+| **Value Options** | **Description**                                 | **Examples**                                                                       | **Required**|
+|-------------------|-------------------------------------------------|------------------------------------------------------------------------------------|-------------|
+| --ca              | Defines the Acme provider URL                   | --ca https://acme-v02.api.letsencrypt.org/directory           (Let's Encrypt)<br />--ca https://acme-staging-v02.api.letsencrypt.org/directory   (LE Staging)<br />--ca https://acme.zerossl.com/v2/DV90                         (ZeroSSL)<br />--ca https://api.buypass.com/acme/directory                   (Buypass)<br />--ca https://api.test4.buypass.no/acme/directory              (Buypass Test)       |     Yes     |
+| --config          | Defines an alternate config file<br />(default /shared/acme/config)                | --config /shared/acme/config_www_f5labs_com                                        |     No      |
+| -a                | Overrides the required leaf certificate<br />algorithm specified in the config file.<br />Options:<br />- rsa<br />- prime256v1<br />- secp384r1         | -a rsa<br />-a prime256v1<br />-a secp384r1                                                                             |     No      |   
+
+<br />
+
+Examples:
+
+```
+www.foo.com := --ca https://acme-v02.api.letsencrypt.org/directory
+www.bar.com := --ca https://acme.zerossl.com/v2/DV90 --config /shared/acme/config_www_example_com
+www.baz.com := --ca https://acme.locallab.com:9000/directory -a rsa
+
+```
+
 </details>
 
 <details>
 <summary><b>Acme Dehydrated Client Configuration Options</b></summary>
+
+Within the ```/shared/acme/config``` file are a number of additional client attributes. This utility allows for per-domain configurations, for example, when EAB is needed for some providers, but not others.
+
+| **Config Options**    | **Description**                                                                             |
+|-----------------------|---------------------------------------------------------------------------------------------|
+| CURL_OPTS             | Defines specific attributes used in the underlying Curl functions. This could minimally<br />include:<br />--http1.1          = use HTTP/1.1<br />-k                 = ignore certificate errors<br />-x \<proxy-url\>     = use an explicit proxy     |
+| KEY_ALGO              | Defines the required leaf certificate algorithm (rsa, prime256v1, or secp384r1)             |
+| KEYSIZE               | Defines the required leaf certificate key size (default: 4096)                              |
+| CONTACT_EMAIL         | Defines the registration account name and must be unique per provider requirements          |
+| OCSP_MUST_STAPLE      | Option to add CSR-flag indicating OCSP stapling to be mandatory (default: no)               |
+| RENEW_DAYS            | Minimum days before expiration to automatically renew certificate (default: 30)             |
+| OCSP_FETCH            | Fetch OCSP responses (default: no)                                                          |
+| OCSP_DAYS             | OCSP refresh interval (default: 5 days)                                                     |
+| EAB_KID/EAB_HMAC_KEY  | Extended Account Binding (EAB) support                                                      |
+
+
 </details>
 
 <details>
 <summary><b>Utility Function Command Line Options</b></summary>
+
+The f5acmehandler also supports a set of commandline options:
+
+| **Command Option** | **Description**                                                                                  |
+|--------------------|--------------------------------------------------------------------------------------------------|
+| --force            | Overrides the default certificate renewal threshhold check (default 30 days)                     |
+| --domain           | Performs Acme renewal functions for a single specified domain. Can be combined with --force      |
+| --init             | Performs validation checks. Use this command after modifying the global configuration data group |                                                                
+| --help             | Shows the help information for above command options                                             |
+
+
+</details>
+
+<details>
+<summary><b>Scheduling</b></summary>
 </details>
 
 ------------
