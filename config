@@ -28,10 +28,22 @@ KEY_ALGO=rsa
 KEYSIZE="2048"
 
 # E-mail to use during the registration (default: <unset>)
-CONTACT_EMAIL=stew@codestew.net
+CONTACT_EMAIL=stew@f5labs.com
 
 # Option to add CSR-flag indicating OCSP stapling to be mandatory (default: no)
 OCSP_MUST_STAPLE="yes"
+
+## Threshold in days when a certificate must be renewed (default: 30 days)
+THRESHOLD=30
+
+## Set to true to always generate a private key. Otherwise a CSR is created from an existing key to support HSM/FIPS environments (default: false)
+ALWAYS_GENERATE_KEY=false
+
+## Set to true to generate error logging (default: true)
+ERRORLOG=true
+
+## Set to true to generate debug logging (default: false)
+DEBUGLOG=true
 
 
 
