@@ -18,7 +18,7 @@
 #   --http1.1          = use HTTP/1.1
 #   -k                 = ignore certificate errors
 #   -x <proxy-url>     = use an explicit proxy
-#CURL_OPTS="--http1.1 -k -x 10.1.10.150:3128"
+# Ex. CURL_OPTS="--http1.1 -k -x 10.1.10.150:3128"
 CURL_OPTS="--http1.1 -k"
 
 # Which public key algorithm should be used? Supported: rsa, prime256v1 and secp384r1 (overridden by -a commandline option)
