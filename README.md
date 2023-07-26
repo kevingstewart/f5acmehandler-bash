@@ -43,12 +43,14 @@ Configuration Options** section below for additional details. Examples:
 * ${\large{\textbf{\color{red}Step\ 5}}}$: Optionally run the following command in ```/shared/acme``` whenever the data group is updated. This command will check the validity of the configuration data group, and register any providers not already registered. See the **Utility Function Command Line Options** section below for additional details.
 
     ```bash
+    cd /shared/acme
     ./f5acmehandler --init
     ```
 
 * ${\large{\textbf{\color{red}Step\ 6}}}$:  Initiate an ACME fetch. This command will loop through the ```acme_config_dg``` data group and perform required ACME certificate renewal operations for each configured domain. By default, if no certificate and key exists, ACME renewal will generate a new certificate and key. If a private key exists, a CSR is generated from the existing key to renew the certificate only. This it to support HSM/FIPS environments, but can be disabled. See the **Utility Function Command Line Options** and **ACME Dehydrated Client Configuration Options** sections below for additional details.
 
     ```bash
+    cd /shared/acme
     ./f5acmehandler
     ```
 
