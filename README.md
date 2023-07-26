@@ -171,7 +171,13 @@ TODDO
 ### ${\textbf{\color{blue}Testing}}$
 There are a number of ways to test the ```f5acmehandler``` utility, including validation against local ACME services. The **acme-servers** folder contains Docker-Compose options for spinning up local **Smallstep Step-CA** and **Pebble** ACME servers. The following describes a very simple testing scenario using one of these tools.
 
-* Install the **Smallstep Step-CA** ACME server instance on a Linux machine. Adjust the local /etc/hosts DNS entries at the bottom of the docker-compose YAML file accordingly to allow the ACME server to locally resolve your ACME client instance (the set of BIG-IP HTTP virtual servers). This command will create an ACME service listening on HTTPS port 9000.
+* On the BIG-IP, install the f5acmehandler utility components on the BIG-IP instance. SSH to the BIG-IP shell and run the following command:
+
+    ```bash
+    curl -s https://raw.githubusercontent.com/kevingstewart/f5acmehandler-bash/main/install.sh | bash
+    ```
+    
+* Install the **Smallstep Step-CA** ACME server instance on a local Linux machine. Adjust the local /etc/hosts DNS entries at the bottom of the docker-compose YAML file accordingly to allow the ACME server to locally resolve your ACME client instance (the set of BIG-IP HTTP virtual servers). This command will create an ACME service listening on HTTPS port 9000.
 
     ```bash
     git clone https://github.com/kevingstewart/f5acmehandler-bash.git
@@ -179,22 +185,16 @@ There are a number of ways to test the ```f5acmehandler``` utility, including va
     docker-compose -f docker-compose-smallstep-ca.yaml up -d
     ```
 
-* For each of the above /etc/hosts entries, ensure that a matching HTTP virtual server exists on the BIG-IP. Define the destination IP (same as /etc/hosts entry), port 80, a generic ```http``` profile, the proper listening VLAN, and attach the ```acme_handler_rule``` iRule.
+* On the BIG-IP, for each of the above /etc/hosts entries, ensure that a matching HTTP virtual server exists on the BIG-IP. Define the destination IP (same as /etc/hosts entry), port 80, a generic ```http``` profile, the proper listening VLAN, and attach the ```acme_handler_rule``` iRule.
 
-* Install the f5acmehandler utility components on the BIG-IP instance. SSH to the BIG-IP shell and run the following command:
-
-    ```bash
-    curl -s https://raw.githubusercontent.com/kevingstewart/f5acmehandler-bash/main/install.sh | bash
-    ```
-
-* Update the ```acme_config_dg``` data group and add an entry for each domain (certificate). This should match each /etc/hosts domain entry specified in the docker-compose file.
+* On the BIG-IP, update the ```acme_config_dg``` data group and add an entry for each domain (certificate). This should match each ```/etc/hosts``` domain entry specified in the docker-compose file.
 
     ```lua
     www.foo.com := --ca https://<acme-server-ip>:9000/acme/acme/directory
     www.bar.com := --ca https://<acme-server-ip>:9000/acme/acme/directory -a rsa
     ```
   
-* Trigger the f5acmehandler ```--init``` function to validate the config data group and register the client to this provider.
+* On the BIG-IP. trigger the f5acmehandler ```--init``` function to validate the config data group and register the client to this provider.
 
     ```bash
     ./f5acmehandler --init
@@ -206,13 +206,13 @@ There are a number of ways to test the ```f5acmehandler``` utility, including va
     tail -f /var/log/acmehandler
     ```
 
-* Trigger an initial ACME certificate fetch. This will loop through the ```acme_config_dg``` data group and process ACME certificate renewal for each domain. In this case, it will create both the certificate and private key and install these to the BIG-IP. You can then use these in client SSL profiles that get attached to HTTPS virtual servers.
+* Trigger an initial ACME certificate fetch. This will loop through the ```acme_config_dg``` data group and process ACME certificate renewal for each domain. In this case, it will create both the certificate and private key and install these to the BIG-IP. You can then use these in client SSL profiles that get attached to HTTPS virtual servers. In the BIG-IP, under **System - Certificate Management - Traffic Certificate Management - SSL Certificate List**, observe the installed certificate(s) and key(s).
 
     ```bash
     ./f5acmehandler
     ```
 
-* Trigger a subsequent ACME certificate fetch, specifying a single domain and forcing renewal.
+* Trigger a subsequent ACME certificate fetch, specifying a single domain and forcing renewal. Before launching the following command, open the properties of one of the certificates in the BIG-IP UI. After the command completes, refresh the certificate properties and observe the updated Serial Number and Fingerprint values.
 
     ```bash
     ./f5acmehandler --domain www.foo.com --force
