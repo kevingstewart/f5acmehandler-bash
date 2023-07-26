@@ -61,6 +61,7 @@ Configuration Options** section below for additional details. Examples:
 
 ------------
 ### ${\textbf{\color{blue}Configuration\ Details}}$
+Some text...
 
 <details>
 <summary><b>Global Configuration Options</b></summary>
@@ -131,7 +132,7 @@ TODO
 
 ------------
 ### ${\textbf{\color{blue}ACME\ Protocol\ Flow}}$
-Blah
+Some text...
 
 <details>
 <summary><b>ACME Protocol Flow Diagram</b></summary>
