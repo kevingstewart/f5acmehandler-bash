@@ -46,7 +46,7 @@ Configuration Options** section below for additional details. Examples:
     ./f5acmehandler --init
     ```
 
-* ${\large{\textbf{\color{red}Step\ 6}}}$:  Initiate an ACME fetch. This command will loop through the ```acme_config_dg``` data group and perform required ACME certificate renewal operations for each configured domain. By default, if no certificate and key exists, ACME renewal will generate a new certificate and key. If a private key exists, a CSR is generated from the existing key to renew the certificate only. This it to support HSM/FIPS environments, but can be disabled. See the **Utility Function Command Line Options** and **Miscellaneous Configuration Options** sections below for additional details.
+* ${\large{\textbf{\color{red}Step\ 6}}}$:  Initiate an ACME fetch. This command will loop through the ```acme_config_dg``` data group and perform required ACME certificate renewal operations for each configured domain. By default, if no certificate and key exists, ACME renewal will generate a new certificate and key. If a private key exists, a CSR is generated from the existing key to renew the certificate only. This it to support HSM/FIPS environments, but can be disabled. See the **Utility Function Command Line Options** and **ACME Dehydrated Client Configuration Options** sections below for additional details.
 
     ```bash
     ./f5acmehandler
@@ -69,9 +69,9 @@ Global configuration options are specified in the ```acme_config_dg``` data grou
 
 | **Value Options** | **Description**                                 | **Examples**                                                                       | **Required**|
 |-------------------|-------------------------------------------------|------------------------------------------------------------------------------------|-------------|
-| --ca              | Defines the ACME provider URL                   | --ca https://acme-v02.api.letsencrypt.org/directory           (Let's Encrypt)<br />--ca https://acme-staging-v02.api.letsencrypt.org/directory   (LE Staging)<br />--ca https://acme.zerossl.com/v2/DV90                         (ZeroSSL)<br />--ca https://api.buypass.com/acme/directory                   (Buypass)<br />--ca https://api.test4.buypass.no/acme/directory              (Buypass Test)       |     Yes     |
-| --config          | Defines an alternate config file<br />(default /shared/acme/config)                | --config /shared/acme/config_www_foo_com                                        |     No      |
-| -a                | Overrides the required leaf certificate<br />algorithm specified in the config file.<br />Options:<br />- rsa<br />- prime256v1<br />- secp384r1         | -a rsa<br />-a prime256v1<br />-a secp384r1                                                                             |     No      |   
+| --ca              | Defines the ACME provider URL                   | --ca https://acme-v02.api.letsencrypt.org/directory           (Let's Encrypt)<br />--ca https://acme-staging-v02.api.letsencrypt.org/directory   (LE Staging)<br />--ca https://acme.zerossl.com/v2/DV90                         (ZeroSSL)<br />--ca https://api.buypass.com/acme/directory                   (Buypass)<br />--ca https://api.test4.buypass.no/acme/directory              (Buypass Test)       |     $${\large{\textbf{\color{red}Yes}}}$$     |
+| --config          | Defines an alternate config file<br />(default /shared/acme/config)                | --config /shared/acme/config_www_foo_com                                        |     $${\large{\textbf{\color{black}No}}}$$      |
+| -a                | Overrides the required leaf certificate<br />algorithm specified in the config file.<br />Options:<br /><br />- rsa<br />- prime256v1<br />- secp384r1         | -a rsa<br />-a prime256v1<br />-a secp384r1                                                                             |     $${\large{\textbf{\color{black}No}}}$$      |   
 
 <br />
 
@@ -90,17 +90,23 @@ www.baz.com := --ca https://acme.locallab.com:9000/directory -a rsa
 
 Within the ```/shared/acme/config``` file are a number of additional client attributes. This utility allows for per-domain configurations, for example, when EAB is needed for some providers, but not others. Adjust the following atttributes as required for your Acme provider(s).
 
-| **Config Options**    | **Description**                                                                             |
-|-----------------------|---------------------------------------------------------------------------------------------|
-| CURL_OPTS             | Defines specific attributes used in the underlying Curl functions. This could minimally<br />include:<br />--http1.1          = use HTTP/1.1<br />-k                 = ignore certificate errors<br />-x \<proxy-url\>     = use an explicit proxy     |
-| KEY_ALGO              | Defines the required leaf certificate algorithm (rsa, prime256v1, or secp384r1)             |
-| KEYSIZE               | Defines the required leaf certificate key size (default: 4096)                              |
-| CONTACT_EMAIL         | Defines the registration account name and must be unique per provider requirements          |
-| OCSP_MUST_STAPLE      | Option to add CSR-flag indicating OCSP stapling to be mandatory (default: no)               |
-| RENEW_DAYS            | Minimum days before expiration to automatically renew certificate (default: 30)             |
-| OCSP_FETCH            | Fetch OCSP responses (default: no)                                                          |
-| OCSP_DAYS             | OCSP refresh interval (default: 5 days)                                                     |
-| EAB_KID/EAB_HMAC_KEY  | Extended Account Binding (EAB) support                                                      |
+| **Config Options**    | **Description**                                                                                                                                 |
+|-----------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
+| CURL_OPTS             | Defines specific attributes used in the underlying Curl functions. This could minimally<br />include:<br /><br />--http1.1          = use HTTP/1.1<br />-k                 = ignore certificate errors<br />-x \<proxy-url\>     = use an explicit proxy                                                         |
+| KEY_ALGO              | Defines the required leaf certificate algorithm (rsa, prime256v1, or secp384r1)                                                                 |
+| KEYSIZE               | Defines the required leaf certificate key size (default: 4096)                                                                                  |
+| CONTACT_EMAIL         | Defines the registration account name and must be unique per provider requirements                                                              |
+| OCSP_MUST_STAPLE      | Option to add CSR-flag indicating OCSP stapling to be mandatory (default: no)                                                                   |
+| THRESHOLD             | Threshold in days when a certificate must be renewed (default: 30 days)                                                                         |
+| ALWAYS_GENERATE_KEY   | Set to true to always generate a private key. Otherwise a CSR is created from an existing key to support HSM/FIPS environments (default: false) |
+| ERRORLOG              | Set to true to generate error logging (default: true)                                                                                           |
+| DEBUGLOG              | Set to true to generate debug logging (default: false)                                                                                          |
+| RENEW_DAYS            | Minimum days before expiration to automatically renew certificate (default: 30)                                                                 |
+| OCSP_FETCH            | Fetch OCSP responses (default: no)                                                                                                              |
+| OCSP_DAYS             | OCSP refresh interval (default: 5 days)                                                                                                         |
+| EAB_KID/EAB_HMAC_KEY  | Extended Account Binding (EAB) support                                                                                                          |
+| ZEROCYCLE             | Set to preferred number of zeroization cycles for shredding created private keys (default: 3 rotations)                                         |
+| CREATEPROFILE         | Set to true to generate new client SSL profiles when new certs and keys are created (default: false)                                            |
 </details>
 
 <details>
@@ -119,20 +125,6 @@ The ```f5acmehandler.sh``` utility script also supports a set of commandline opt
 <details>
 <summary><b>Scheduling Options</b></summary>
 TODO
-</details>
-
-<details>
-<summary><b>Miscellaneous Configuration Options</b></summary>
-
-The following additional values are defined directly within the ```f5acmehandler.sh``` utility script. Adjust only as required.
-
-| **Command Option**   | **Description**                                                                                                |
-|----------------------|----------------------------------------------------------------------------------------------------------------|
-| THRESHOLD            | Threshold in days when a certificate must be renewed (default 30 days)                                         |
-| ALWAYS_GENERATE_KEY  | Set to true to always generate a private key. Otherwise a CSR is created from an existing key (default: false) |
-| ERRORLOG             | Set to true to generate error logging (to LOGFILE) (default: true)                                             |
-| DEBUGLOG             | Set to true to generate debug logging (to LOGFILE) (default: false)                                            |
-| LOGFILE              | Set to location of the error/debug log (default: /var/log/acmehandler)                                         |
 </details>
 
 <br />
