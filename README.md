@@ -17,40 +17,42 @@ This utility defines a wrapper for the Bash-based [Dehydrated](https://github.co
 
 ------------
 ### ${\textbf{\color{blue}Installation\ and\ Configuration}}$
-Installation to the BIG-IP is simple. The only constraint is that the certificate objects installed on the BIG-IP **must** be named after the certificate subject name. For example, if the certificate subject name is ```www.f5labs.com```, then the installed certificate and key must also be named ```www.f5labs.com```. Certificate automation is predicated on this naming construct. 
+Installation to the BIG-IP is simple. The only constraint is that the certificate objects installed on the BIG-IP **must** be named after the certificate subject name. For example, if the certificate subject name is ```www.foo.com```, then the installed certificate and key must also be named ```www.foo.com```. Certificate automation is predicated on this naming construct. 
 
 <br />
 
-* **Step 1**: SSH to the BIG-IP shell and run the following command. This will install all required components.
+* ${\large{\textbf{\color{red}Step\ 1}}}$: SSH to the BIG-IP shell and run the following command. This will install all required components.
 
-    ```
+    ```bash
     curl -s https://raw.githubusercontent.com/kevingstewart/f5acmehandler-bash/main/install.sh | bash
     ```
 
-* **Step 2**: Update the new ```acme_config_dg``` data group and add entries for each managed domain (certificate subject). See the **Global 
+* ${\large{\textbf{\color{red}Step\ 2}}}$: Update the new ```acme_config_dg``` data group and add entries for each managed domain (certificate subject). See the **Global 
 Configuration Options** section below for additional details. Examples:
 
-    ```
+    ```lua
     www.foo.com := --ca https://acme-v02.api.letsencrypt.org/directory
     www.bar.com := --ca https://acme.zerossl.com/v2/DV90 --config /shared/acme/config_www_example_com
     www.baz.com := --ca https://acme.locallab.com:9000/directory -a rsa
     ```
 
-* **Step 3**: Adjust the client configuration ```config``` file as needed for your environment. In most cases you'll only need a single client config file, but this utility allows for per-domain configurations. For example, you can define separate config files when EAB is needed for some provider(s), but not others. See the **ACME Dehydrated Client Configuration Options** section below for additional details.
+* ${\large{\textbf{\color{red}Step\ 3}}}$: Adjust the client configuration ```config``` file in the /shared/acme folder as needed for your environment. In most cases you'll only need a single client config file, but this utility allows for per-domain configurations. For example, you can define separate config files when EAB is needed for some provider(s), but not others. See the **ACME Dehydrated Client Configuration Options** section below for additional details.
 
-* **Step 4**: Optionally run the following command in ```/shared/acme``` whenever the data group is updated. This command will check the validity of the configuration data group, and register any providers not already registered. See the **Utility Function Command Line Options** section below for additional details.
+* ${\large{\textbf{\color{red}Step\ 4}}}$: Minimally ensure that an HTTP virtual server exists on the BIG-IP that matches the DNS resolution of each target domain (certificate subject). Attach the ```acme_handler_rule``` iRule to each HTTP virtual server.
 
-    ```
+* ${\large{\textbf{\color{red}Step\ 5}}}$: Optionally run the following command in ```/shared/acme``` whenever the data group is updated. This command will check the validity of the configuration data group, and register any providers not already registered. See the **Utility Function Command Line Options** section below for additional details.
+
+    ```bash
     ./f5acmehandler --init
     ```
 
-* **Step 5**: Initiate an ACME fetch. This command will loop through the ```acme_config_dg``` data group and perform required ACME certificate renewal operations for each configured domain. By default, if no certificate and key exists, ACME renewal will generate a new certificate and key. If a private key exists, a CSR is generated from the existing key to renew the certificate only. This it to support HSM/FIPS environments, but can be disabled. See the **Utility Function Command Line Options** and **Miscellaneous Configuration Options** sections below for additional details.
+* ${\large{\textbf{\color{red}Step\ 6}}}$:  Initiate an ACME fetch. This command will loop through the ```acme_config_dg``` data group and perform required ACME certificate renewal operations for each configured domain. By default, if no certificate and key exists, ACME renewal will generate a new certificate and key. If a private key exists, a CSR is generated from the existing key to renew the certificate only. This it to support HSM/FIPS environments, but can be disabled. See the **Utility Function Command Line Options** and **Miscellaneous Configuration Options** sections below for additional details.
 
-    ```
+    ```bash
     ./f5acmehandler
     ```
 
-* **Step 6**: Once all configuration updates have been made and the utility function is working as desired, define scheduling to automate the process. By default, each domain (certificate) is checked against the defined threshold (default: 30 days) and only continues if the threshold is exceeded. See the **Scheduling** section below for additional details.
+* ${\large{\textbf{\color{red}Step\ 7}}}$:  Once all configuration updates have been made and the utility function is working as desired, define scheduling to automate the process. By default, each domain (certificate) is checked against the defined threshold (default: 30 days) and only continues if the threshold is exceeded. See the **Scheduling** section below for additional details.
 
     TODO...
 <br />
@@ -61,25 +63,26 @@ Configuration Options** section below for additional details. Examples:
 <details>
 <summary><b>Global Configuration Options</b></summary>
 
-Global configuration options are specified in the ```acme_config_dg``` data group for each domain (certificate subject). Each entry in the data group must include a **String**: the domain name (ex. www.f5labs.com), and a **Value** consisting of a number of configuration options:
+Global configuration options are specified in the ```acme_config_dg``` data group for each domain (certificate subject). Each entry in the data group must include a **String**: the domain name (ex. www.foo.com), and a **Value** consisting of a number of configuration options:
 
 <br />
 
 | **Value Options** | **Description**                                 | **Examples**                                                                       | **Required**|
 |-------------------|-------------------------------------------------|------------------------------------------------------------------------------------|-------------|
 | --ca              | Defines the ACME provider URL                   | --ca https://acme-v02.api.letsencrypt.org/directory           (Let's Encrypt)<br />--ca https://acme-staging-v02.api.letsencrypt.org/directory   (LE Staging)<br />--ca https://acme.zerossl.com/v2/DV90                         (ZeroSSL)<br />--ca https://api.buypass.com/acme/directory                   (Buypass)<br />--ca https://api.test4.buypass.no/acme/directory              (Buypass Test)       |     Yes     |
-| --config          | Defines an alternate config file<br />(default /shared/acme/config)                | --config /shared/acme/config_www_f5labs_com                                        |     No      |
+| --config          | Defines an alternate config file<br />(default /shared/acme/config)                | --config /shared/acme/config_www_foo_com                                        |     No      |
 | -a                | Overrides the required leaf certificate<br />algorithm specified in the config file.<br />Options:<br />- rsa<br />- prime256v1<br />- secp384r1         | -a rsa<br />-a prime256v1<br />-a secp384r1                                                                             |     No      |   
 
 <br />
 
 Examples:
 
-```
+```lua
 www.foo.com := --ca https://acme-v02.api.letsencrypt.org/directory
 www.bar.com := --ca https://acme.zerossl.com/v2/DV90 --config /shared/acme/config_www_example_com
 www.baz.com := --ca https://acme.locallab.com:9000/directory -a rsa
 ```
+
 </details>
 
 <details>
@@ -155,7 +158,7 @@ Below are descriptions of additional features and environment options.
 
 External Account Binding (EAB) "pre-authentication" is defined in the [ACME RFC](https://datatracker.ietf.org/doc/html/rfc8555#section-7.3.4). This is used to associate an ACME account with an existing account in a non-ACME system. The CA operating the ACME server provides a **MAC Key** and **Key Identifier**, which must be included in the ACME client registration process. The client MAC and Key ID are specified within the ```/shared/acme/config``` file. Example:
 
-```
+```bash
 # Extended Account Binding (EAB) support
 EAB_KID=keyid_00
 EAB_HMAC_KEY=bWFjXzAw
@@ -178,38 +181,53 @@ TODDO
 ### ${\textbf{\color{blue}Testing}}$
 There are a number of ways to test the ```f5acmehandler``` utility, including validation against local ACME services. The **acme-servers** folder contains Docker-Compose options for spinning up local **Smallstep Step-CA** and **Pebble** ACME servers. The following describes a very simple testing scenario using one of these tools.
 
-* Install the **Smallstep Step-CA** ACME server instance on a Linux machine. Adjust the local /etc/hosts DNS entries at the bottom of the docker-compose YAML file accordingly to allow the ACME server to locally resolve your ACME client instance (BIG-IP VIP). This command will create a service listening on HTTPS port 9000.
+* Install the **Smallstep Step-CA** ACME server instance on a Linux machine. Adjust the local /etc/hosts DNS entries at the bottom of the docker-compose YAML file accordingly to allow the ACME server to locally resolve your ACME client instance (the set of BIG-IP HTTP virtual servers). This command will create an ACME service listening on HTTPS port 9000.
 
-    ```
+    ```bash
     git clone https://github.com/kevingstewart/f5acmehandler-bash.git
     cd f5acmehandler-bash/acme-servers/
     docker-compose -f docker-compose-smallstep-ca.yaml up -d
     ```
 
-* Install the f5acmehandler utility components on the BIG-IP instance.
+* For each of the above /etc/hosts entries, ensure that a matching HTTP virtual server exists on the BIG-IP. Define the destination IP (same as /etc/hosts entry), port 80, a generic ```http``` profile, the proper listening VLAN, and attach the ```acme_handler_rule``` iRule.
 
-    ```
+* Install the f5acmehandler utility components on the BIG-IP instance. SSH to the BIG-IP shell and run the following command:
+
+    ```bash
     curl -s https://raw.githubusercontent.com/kevingstewart/f5acmehandler-bash/main/install.sh | bash
     ```
 
 * Update the ```acme_config_dg``` data group and add an entry for each domain (certificate). This should match each /etc/hosts domain entry specified in the docker-compose file.
 
-    ```
+    ```lua
     www.foo.com := --ca https://<acme-server-ip>:9000/acme/acme/directory
     www.bar.com := --ca https://<acme-server-ip>:9000/acme/acme/directory -a rsa
     ```
   
-* Trigger the f5acmehandler ```--init``` function to validate the config data group and register the client to this provider. Initially you will need to minimally create an HTTP VIP for each of the domains (as specified in the /etc/hosts file above), and apply the ```acme_handler_rule``` iRule to that VIP.
+* Trigger the f5acmehandler ```--init``` function to validate the config data group and register the client to this provider.
 
-    ```
+    ```bash
     ./f5acmehandler --init
     ```
     
-* Trigger an initial ACME certificate fetch. This will loop through the ```acme_config_dg``` data group and process ACME certificate renewal for each domain. In this case, it will create both the certificate and private key and install these to the BIG-IP.
+* To view DEBUG logs for the f5acmehandler processing, ensure that the ```DEBUGLOG``` entry in the config file is set to true. Then in a separate SSH window to the BIG-IP, tail the ```acmehandler``` log file:
 
+    ```bash
+    tail -f /var/log/acmehandler
     ```
+
+* Trigger an initial ACME certificate fetch. This will loop through the ```acme_config_dg``` data group and process ACME certificate renewal for each domain. In this case, it will create both the certificate and private key and install these to the BIG-IP. You can then use these in client SSL profiles that get attached to HTTPS virtual servers.
+
+    ```bash
     ./f5acmehandler
     ```
+
+* Trigger a subsequent ACME certificate fetch, specifying a single domain and forcing renewal.
+
+    ```bash
+    ./f5acmehandler --domain www.foo.com --force
+    ```
+ 
 
 <br />
 
