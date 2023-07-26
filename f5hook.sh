@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 ## F5 BIG-IP ACME Client (Dehydrated) Hook Script
-## Author: kevin-at-f5-dot-com
+## Maintainer: kevin-at-f5-dot-com
 ## Description: 
 ## Configuration and installation: 
 
