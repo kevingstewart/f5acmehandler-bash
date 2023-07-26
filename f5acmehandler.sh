@@ -6,35 +6,49 @@
 ## Configuration and installation: 
 
 
-## ================================================== ##
-## DEFINE COMMON VARIABLES ========================== ##
-## ================================================== ##
-THRESHOLD=40		               ## Threshold in days when a certificate must be renewed
-ALWAYS_GENERATE_KEY=false        ## Set to true to always generate a private key. Otherwise a CSR is created from an existing key
-
-ERRORLOG=true                    ## Set to true to generate error logging (to stdout)
-DEBUGLOG=true                    ## Set to true to generate debug logging (to stdout)
-LOGFILE=/var/log/acmehandler     ## Set to location of the error/debug log
-
-
 
 ## ================================================== ##
 ## FUNCTIONS ======================================== ##
 ## ================================================== ##
 
-## Static variables - do not touch
+## Static processing variables - do not touch
 ACMEDIR=/shared/acme
 STANDARD_OPTIONS="-x -k ${ACMEDIR}/f5hook.sh -t http-01"
 REGISTER_OPTIONS="--register --accept-terms"
+LOGFILE=/var/log/acmehandler
 FORCERENEW="no"
 SINGLEDOMAIN=""
 
-## Function: process_errors --> 
+## Function: process_errors --> print error and debug logs to the log file
 process_errors () {
    local ERR="${1}"
    timestamp=$(date +%F_%T)
    if [[ "$ERR" =~ ^"ERROR" && "$ERRORLOG" == "true" ]]; then echo -e ">> [${timestamp}]  ${ERR}" >> ${LOGFILE}; fi
    if [[ "$ERR" =~ ^"DEBUG" && "$DEBUGLOG" == "true" ]]; then echo -e ">> [${timestamp}]  ${ERR}" >> ${LOGFILE}; fi
+   if [[ "$ERR" =~ ^"PANIC" ]]; then echo -e ">> [${timestamp}]  ${ERR}" >> ${LOGFILE}; fi
+}
+
+## Function: process_config_file --> source values from the default or a defined config file
+process_config_file() {
+   local COMMAND="${1}"
+      
+   ## Set default values
+   THRESHOLD=30
+   ALWAYS_GENERATE_KEY=false
+   ERRORLOG=true
+   DEBUGLOG=false
+
+   ## Extract --config value and read config values
+   if [[ "$COMMAND" =~ "--config " ]]; then COMMAND_CONFIG=$(echo "$COMMAND" | sed -E 's/.*(--config+\s[^[:space:]]+).*/\1/g;s/"//g'); else COMMAND_CONFIG=""; fi
+   if [[ "$COMMAND_CONFIG" == "" ]]
+   then
+      ## No config specified --> source from the default config file
+      . /shared/acme/config
+   else
+      ## Alternate config specified --> source from this alternate config file
+      THIS_COMMAND_CONFIG=$(echo ${COMMAND_CONFIG} | sed -E 's/--config //')
+      . "${THIS_COMMAND_CONFIG}"
+   fi
 }
 
 ## Function: (handler) generate_new_cert_key
@@ -108,6 +122,9 @@ process_handler_config () {
 
    ## Split input line into {DOMAIN} and {COMMAND} variables.
    IFS="=" read -r DOMAIN COMMAND <<< $1
+
+   ## Pull values from default or defined config file
+   process_config_file "$COMMAND"
 
    if [[ ( ! -z "$SINGLEDOMAIN" ) && ( ! "$SINGLEDOMAIN" == "$DOMAIN" ) ]]
    then
@@ -312,7 +329,7 @@ process_handler_init() {
       ## Print report to stdout
       printf "${init_report}\n\n"
    else
-      process_errors "ERROR: There was an error accessing the acme_config_dg data group. Please re-install\n"
+      printf "PANIC: There was an error accessing the acme_config_dg data group. Please re-install\n\n"
       exit 1
    fi
 }
@@ -320,8 +337,6 @@ process_handler_init() {
 
 ## Function: process_handler_main --> loop through config data group and pass DOMAIN and COMMAND values to client handlers
 process_handler_main() {
-   process_errors "DEBUG (handler) Initiating ACME client handler function\n"
-
    ## Test for and only run on active BIG-IP
    ACTIVE=$(tmsh show cm failover-status | grep ACTIVE | wc -l)
    if [[ "${ACTIVE}" = "1" ]]
@@ -335,7 +350,7 @@ process_handler_main() {
       then
          IFS=";" && for v in $(tmsh list ltm data-group internal acme_config_dg one-line | sed -e 's/ltm data-group internal acme_config_dg { records { //;s/ \} type string \}//;s/ { data /=/g;s/ \} /;/g;s/ \}//'); do process_handler_config $v; done
       else
-         process_errors "ERROR: There was an error accessing the acme_config_dg data group. Please re-install\n"
+         process_errors "PANIC: There was an error accessing the acme_config_dg data group. Please re-install\n"
          exit 1
       fi
    fi
