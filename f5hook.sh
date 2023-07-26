@@ -10,11 +10,8 @@
 ## DEFINE COMMON VARIABLES ========================== ##
 ## ================================================== ##
 ZEROCYCLE=3                      ## Set to preferred number of zeroization cycles for shredding created private keys
-
 CREATEPROFILE=false              ## Set to true to generate new client SSL profiles with new certs/keys
 DEBUGLOG=true                    ## Set to true to generate debug logging (to stdout)
-
-
 
 
 
@@ -22,7 +19,9 @@ DEBUGLOG=true                    ## Set to true to generate debug logging (to st
 ## FUNCTIONS ======================================== ##
 ## ================================================== ##
 
+## Static processing variables - do not touch
 ACMEDIR=/shared/acme
+
 
 process_errors () {
    local ERR="${1}"
