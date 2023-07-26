@@ -162,7 +162,7 @@ TODO
 
 <details>
 <summary><b>BIG-IQ Support</b></summary>
-TODDO
+TODO
 </details>
 
 <br />
