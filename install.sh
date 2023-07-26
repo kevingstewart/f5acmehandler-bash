@@ -1,5 +1,5 @@
 ## Simple Dehydrated Acme (F5 BIG-IP) - Install Utility
-## Author: kevin.g.stewart@gmail.com
+## Maintainer: kevin-at-f5-dot-com
 ##
 ## Dehydrated source: https://github.com/dehydrated-io/dehydrated
 ## 
