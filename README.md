@@ -105,8 +105,6 @@ Within the ```/shared/acme/config``` file are a number of additional client attr
 | OCSP_FETCH            | Fetch OCSP responses (default: no)                                                                                                              |
 | OCSP_DAYS             | OCSP refresh interval (default: 5 days)                                                                                                         |
 | EAB_KID/EAB_HMAC_KEY  | Extended Account Binding (EAB) support                                                                                                          |
-| ZEROCYCLE             | Set to preferred number of zeroization cycles for shredding created private keys (default: 3 rotations)                                         |
-| CREATEPROFILE         | Set to true to generate new client SSL profiles when new certs and keys are created (default: false)                                            |
 </details>
 
 <details>
