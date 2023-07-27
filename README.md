@@ -44,14 +44,14 @@ Configuration Options** section below for additional details. Examples:
 
     ```bash
     cd /shared/acme
-    ./f5acmehandler --init
+    ./f5acmehandler.sh --init
     ```
 
 * ${\large{\textbf{\color{red}Step\ 6}}}$ (Fetch):  Initiate an ACME fetch. This command will loop through the ```acme_config_dg``` data group and perform required ACME certificate renewal operations for each configured domain. By default, if no certificate and key exists, ACME renewal will generate a new certificate and key. If a private key exists, a CSR is generated from the existing key to renew the certificate only. This it to support HSM/FIPS environments, but can be disabled. See the **Utility Command Line Options** and **ACME Client Configuration Options** sections below for additional details.
 
     ```bash
     cd /shared/acme
-    ./f5acmehandler
+    ./f5acmehandler.sh
     ```
 
 * ${\large{\textbf{\color{red}Step\ 7}}}$ (Schedule):  Once all configuration updates have been made and the utility function is working as desired, define scheduling to automate the process. By default, each domain (certificate) is checked against the defined threshold (default: 30 days) and only continues if the threshold is exceeded. See the **Scheduling** section below for additional details.
@@ -135,7 +135,13 @@ TODO
 Some text...
 
 <details>
-<summary><b>ACME Protocol Flow Diagram</b></summary>
+<summary><b>ACME Functional Flow on BIG-IP</b></summary>
+
+TODO
+</details>
+
+<details>
+<summary><b>ACME Protocol Flow Reference</b></summary>
 
 TODO
 </details>
@@ -153,8 +159,8 @@ External Account Binding (EAB) "pre-authentication" is defined in the [ACME RFC]
 
 ```bash
 # Extended Account Binding (EAB) support
-EAB_KID=keyid_00
-EAB_HMAC_KEY=bWFjXzAw
+EAB_KID=kid-1
+EAB_HMAC_KEY=zWNDZM6eQGHWpSRTPal5eIUYFTu7EajVIoguysqZ9wG44nMEtx3MUAsUDkMTQ12W
 ```
 </details>
 
@@ -200,7 +206,7 @@ There are a number of ways to test the ```f5acmehandler``` utility, including va
 * On the BIG-IP. trigger the f5acmehandler ```--init``` function to validate the config data group and register the client to this provider.
 
     ```bash
-    ./f5acmehandler --init
+    ./f5acmehandler.sh --init
     ```
     
 * To view DEBUG logs for the f5acmehandler processing, ensure that the ```DEBUGLOG``` entry in the config file is set to true. Then in a separate SSH window to the BIG-IP, tail the ```acmehandler``` log file:
@@ -212,13 +218,13 @@ There are a number of ways to test the ```f5acmehandler``` utility, including va
 * Trigger an initial ACME certificate fetch. This will loop through the ```acme_config_dg``` data group and process ACME certificate renewal for each domain. In this case, it will create both the certificate and private key and install these to the BIG-IP. You can then use these in client SSL profiles that get attached to HTTPS virtual servers. In the BIG-IP, under **System - Certificate Management - Traffic Certificate Management - SSL Certificate List**, observe the installed certificate(s) and key(s).
 
     ```bash
-    ./f5acmehandler
+    ./f5acmehandler.sh
     ```
 
 * Trigger a subsequent ACME certificate fetch, specifying a single domain and forcing renewal. Before launching the following command, open the properties of one of the certificates in the BIG-IP UI. After the command completes, refresh the certificate properties and observe the updated Serial Number and Fingerprint values.
 
     ```bash
-    ./f5acmehandler --domain www.foo.com --force
+    ./f5acmehandler.sh --domain www.foo.com --force
     ```
  
 
