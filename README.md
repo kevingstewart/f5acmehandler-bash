@@ -36,7 +36,7 @@ Configuration Options** section below for additional details. Examples:
     www.baz.com := --ca https://acme.locallab.com:9000/directory -a rsa
     ```
 
-* ${\large{\textbf{\color{red}Step\ 3}}}$ (Client Config): Adjust the client configuration ```config``` file in the /shared/acme folder as needed for your environment. In most cases you'll only need a single client config file, but this utility allows for per-domain configurations. For example, you can define separate config files when EAB is needed for some provider(s), but not others. See the **ACME Dehydrated Client Configuration Options** section below for additional details.
+* ${\large{\textbf{\color{red}Step\ 3}}}$ (Client Config): Adjust the client configuration ```config``` file in the /shared/acme folder as needed for your environment. In most cases you'll only need a single client config file, but this utility allows for per-domain configurations. For example, you can define separate config files when EAB is needed for some provider(s), but not others. See the **ACME Client Configuration Options** section below for additional details.
 
 * ${\large{\textbf{\color{red}Step\ 4}}}$ (HTTP VIPs): Minimally ensure that an HTTP virtual server exists on the BIG-IP that matches the DNS resolution of each target domain (certificate subject). Attach the ```acme_handler_rule``` iRule to each HTTP virtual server.
 
@@ -47,7 +47,7 @@ Configuration Options** section below for additional details. Examples:
     ./f5acmehandler --init
     ```
 
-* ${\large{\textbf{\color{red}Step\ 6}}}$ (Fetch):  Initiate an ACME fetch. This command will loop through the ```acme_config_dg``` data group and perform required ACME certificate renewal operations for each configured domain. By default, if no certificate and key exists, ACME renewal will generate a new certificate and key. If a private key exists, a CSR is generated from the existing key to renew the certificate only. This it to support HSM/FIPS environments, but can be disabled. See the **Utility Function Command Line Options** and **ACME Dehydrated Client Configuration Options** sections below for additional details.
+* ${\large{\textbf{\color{red}Step\ 6}}}$ (Fetch):  Initiate an ACME fetch. This command will loop through the ```acme_config_dg``` data group and perform required ACME certificate renewal operations for each configured domain. By default, if no certificate and key exists, ACME renewal will generate a new certificate and key. If a private key exists, a CSR is generated from the existing key to renew the certificate only. This it to support HSM/FIPS environments, but can be disabled. See the **Utility Function Command Line Options** and **ACME Client Configuration Options** sections below for additional details.
 
     ```bash
     cd /shared/acme
@@ -89,7 +89,7 @@ www.baz.com := --ca https://acme.locallab.com:9000/directory -a rsa
 </details>
 
 <details>
-<summary><b>ACME Dehydrated Client Configuration Options</b></summary>
+<summary><b>ACME Client Configuration Options</b></summary>
 
 Within the ```/shared/acme/config``` file are a number of additional client attributes. This utility allows for per-domain configurations, for example, when EAB is needed for some providers, but not others. Adjust the following atttributes as required for your Acme provider(s).
 
