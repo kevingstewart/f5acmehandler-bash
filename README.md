@@ -137,7 +137,18 @@ Provided below are detailed descriptions of the control flows. The **ACME Functi
 <details>
 <summary><b>ACME Functional Flow on BIG-IP</b></summary>
 
-TODO
+The ```f5acmehandler.sh``` utility is either launched manually or through scheduled process. Once triggered, the utility loops through the ```acme_config_dg``` data group. For each domain entry:
+* If the certificate exists on the BIG-IP:
+    * The certificate expiration date is compared to the defined threshold (days)
+        * If the certificate expiration is within the threshold, processing for this domain ends
+        * If the certificate expiration is not within the threshold
+            * If configured to generate a CSR from existing private key, this is done and the ACME client is triggered with this CSR. A successful negotiation returns a new certificate, which replaces the existing certificate on the BIG-IP.
+            * If configured to always generate a new key, the ACME client is triggered for this domain. A successful negotiation returns a new certificate and private key, and both replace the existing certificate and private key on the BIG-IP.
+* If the certificate does not exist on the BIG-IP:
+    * The ACME client is triggered for this domain. A successful ACME negotiation returns a new certificate and private, and both are installed on the BIG-IP.
+
+<br />
+
 </details>
 
 <details>
