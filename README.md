@@ -40,14 +40,14 @@ Configuration Options** section below for additional details. Examples:
 
 * ${\large{\textbf{\color{red}Step\ 4}}}$ (HTTP VIPs): Minimally ensure that an HTTP virtual server exists on the BIG-IP that matches the DNS resolution of each target domain (certificate subject). Attach the ```acme_handler_rule``` iRule to each HTTP virtual server.
 
-* ${\large{\textbf{\color{red}Step\ 5}}}$ (Initialize): Optionally run the following command in ```/shared/acme``` whenever the data group is updated. This command will check the validity of the configuration data group, and register any providers not already registered. See the **Utility Function Command Line Options** section below for additional details.
+* ${\large{\textbf{\color{red}Step\ 5}}}$ (Initialize): Optionally run the following command in ```/shared/acme``` whenever the data group is updated. This command will check the validity of the configuration data group, and register any providers not already registered. See the **Utility Command Line Options** section below for additional details.
 
     ```bash
     cd /shared/acme
     ./f5acmehandler --init
     ```
 
-* ${\large{\textbf{\color{red}Step\ 6}}}$ (Fetch):  Initiate an ACME fetch. This command will loop through the ```acme_config_dg``` data group and perform required ACME certificate renewal operations for each configured domain. By default, if no certificate and key exists, ACME renewal will generate a new certificate and key. If a private key exists, a CSR is generated from the existing key to renew the certificate only. This it to support HSM/FIPS environments, but can be disabled. See the **Utility Function Command Line Options** and **ACME Client Configuration Options** sections below for additional details.
+* ${\large{\textbf{\color{red}Step\ 6}}}$ (Fetch):  Initiate an ACME fetch. This command will loop through the ```acme_config_dg``` data group and perform required ACME certificate renewal operations for each configured domain. By default, if no certificate and key exists, ACME renewal will generate a new certificate and key. If a private key exists, a CSR is generated from the existing key to renew the certificate only. This it to support HSM/FIPS environments, but can be disabled. See the **Utility Command Line Options** and **ACME Client Configuration Options** sections below for additional details.
 
     ```bash
     cd /shared/acme
@@ -111,7 +111,7 @@ Within the ```/shared/acme/config``` file are a number of additional client attr
 </details>
 
 <details>
-<summary><b>Utility Function Command Line Options</b></summary>
+<summary><b>Utility Command Line Options</b></summary>
 
 The ```f5acmehandler.sh``` utility script also supports a set of commandline options for general maintenance usage. When no command options are specified, the utility loops through the ```acme_config_dg``` data group and performs required ACME certificate renewal operations for each configured domain.
 
