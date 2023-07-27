@@ -21,7 +21,7 @@ Installation to the BIG-IP is simple. The only constraint is that the certificat
 
 <br />
 
-* ${\large{\textbf{\color{red}Step\ 1}}}$: SSH to the BIG-IP shell and run the following command. This will install all required components.
+* ${\large{\textbf{\color{red}Step\ 1}}}$ (Install): SSH to the BIG-IP shell and run the following command. This will install all required components.
 
     ```bash
     curl -s https://raw.githubusercontent.com/kevingstewart/f5acmehandler-bash/main/install.sh | bash
