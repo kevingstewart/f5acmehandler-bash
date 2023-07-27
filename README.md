@@ -40,7 +40,7 @@ Configuration Options** section below for additional details. Examples:
 
 * ${\large{\textbf{\color{red}Step\ 4}}}$ (HTTP VIPs): Minimally ensure that an HTTP virtual server exists on the BIG-IP that matches the DNS resolution of each target domain (certificate subject). Attach the ```acme_handler_rule``` iRule to each HTTP virtual server.
 
-* ${\large{\textbf{\color{red}Step\ 5}}}$ (Init): Optionally run the following command in ```/shared/acme``` whenever the data group is updated. This command will check the validity of the configuration data group, and register any providers not already registered. See the **Utility Function Command Line Options** section below for additional details.
+* ${\large{\textbf{\color{red}Step\ 5}}}$ (Initialize): Optionally run the following command in ```/shared/acme``` whenever the data group is updated. This command will check the validity of the configuration data group, and register any providers not already registered. See the **Utility Function Command Line Options** section below for additional details.
 
     ```bash
     cd /shared/acme
