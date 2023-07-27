@@ -27,7 +27,7 @@ Installation to the BIG-IP is simple. The only constraint is that the certificat
     curl -s https://raw.githubusercontent.com/kevingstewart/f5acmehandler-bash/main/install.sh | bash
     ```
 
-* ${\large{\textbf{\color{red}Step\ 2}}}$: Update the new ```acme_config_dg``` data group and add entries for each managed domain (certificate subject). See the **Global 
+* ${\large{\textbf{\color{red}Step\ 2}}}$ (Global Config): Update the new ```acme_config_dg``` data group and add entries for each managed domain (certificate subject). See the **Global 
 Configuration Options** section below for additional details. Examples:
 
     ```lua
@@ -36,25 +36,25 @@ Configuration Options** section below for additional details. Examples:
     www.baz.com := --ca https://acme.locallab.com:9000/directory -a rsa
     ```
 
-* ${\large{\textbf{\color{red}Step\ 3}}}$: Adjust the client configuration ```config``` file in the /shared/acme folder as needed for your environment. In most cases you'll only need a single client config file, but this utility allows for per-domain configurations. For example, you can define separate config files when EAB is needed for some provider(s), but not others. See the **ACME Dehydrated Client Configuration Options** section below for additional details.
+* ${\large{\textbf{\color{red}Step\ 3}}}$ (Client Config): Adjust the client configuration ```config``` file in the /shared/acme folder as needed for your environment. In most cases you'll only need a single client config file, but this utility allows for per-domain configurations. For example, you can define separate config files when EAB is needed for some provider(s), but not others. See the **ACME Dehydrated Client Configuration Options** section below for additional details.
 
-* ${\large{\textbf{\color{red}Step\ 4}}}$: Minimally ensure that an HTTP virtual server exists on the BIG-IP that matches the DNS resolution of each target domain (certificate subject). Attach the ```acme_handler_rule``` iRule to each HTTP virtual server.
+* ${\large{\textbf{\color{red}Step\ 4}}}$ (HTTP VIPs): Minimally ensure that an HTTP virtual server exists on the BIG-IP that matches the DNS resolution of each target domain (certificate subject). Attach the ```acme_handler_rule``` iRule to each HTTP virtual server.
 
-* ${\large{\textbf{\color{red}Step\ 5}}}$: Optionally run the following command in ```/shared/acme``` whenever the data group is updated. This command will check the validity of the configuration data group, and register any providers not already registered. See the **Utility Function Command Line Options** section below for additional details.
+* ${\large{\textbf{\color{red}Step\ 5}}}$ (Init): Optionally run the following command in ```/shared/acme``` whenever the data group is updated. This command will check the validity of the configuration data group, and register any providers not already registered. See the **Utility Function Command Line Options** section below for additional details.
 
     ```bash
     cd /shared/acme
     ./f5acmehandler --init
     ```
 
-* ${\large{\textbf{\color{red}Step\ 6}}}$:  Initiate an ACME fetch. This command will loop through the ```acme_config_dg``` data group and perform required ACME certificate renewal operations for each configured domain. By default, if no certificate and key exists, ACME renewal will generate a new certificate and key. If a private key exists, a CSR is generated from the existing key to renew the certificate only. This it to support HSM/FIPS environments, but can be disabled. See the **Utility Function Command Line Options** and **ACME Dehydrated Client Configuration Options** sections below for additional details.
+* ${\large{\textbf{\color{red}Step\ 6}}}$ (Fetch):  Initiate an ACME fetch. This command will loop through the ```acme_config_dg``` data group and perform required ACME certificate renewal operations for each configured domain. By default, if no certificate and key exists, ACME renewal will generate a new certificate and key. If a private key exists, a CSR is generated from the existing key to renew the certificate only. This it to support HSM/FIPS environments, but can be disabled. See the **Utility Function Command Line Options** and **ACME Dehydrated Client Configuration Options** sections below for additional details.
 
     ```bash
     cd /shared/acme
     ./f5acmehandler
     ```
 
-* ${\large{\textbf{\color{red}Step\ 7}}}$:  Once all configuration updates have been made and the utility function is working as desired, define scheduling to automate the process. By default, each domain (certificate) is checked against the defined threshold (default: 30 days) and only continues if the threshold is exceeded. See the **Scheduling** section below for additional details.
+* ${\large{\textbf{\color{red}Step\ 7}}}$ (Schedule):  Once all configuration updates have been made and the utility function is working as desired, define scheduling to automate the process. By default, each domain (certificate) is checked against the defined threshold (default: 30 days) and only continues if the threshold is exceeded. See the **Scheduling** section below for additional details.
 
     TODO...
 <br />
