@@ -171,7 +171,12 @@ On ```f5acmehandler.sh``` script initiation, the ```acme_config_dg``` data group
 <details>
 <summary><b>ACME Protocol Flow Reference</b></summary>
 
-TODO
+The ACMEv2 protocol process is expertly described in the following diagram
+
+(source: [https://cms.step.plumbing/uploads/acme_how_it_works_88d170c87a.png](https://cms.step.plumbing/uploads/acme_how_it_works_88d170c87a.png))
+
+![ACME Functional Flow on BIG-IP](images/control-flow-diagram-acmeprotocol.png)
+
 </details>
 
 <br />
