@@ -19,6 +19,7 @@ LOGFILE=/var/log/acmehandler
 FORCERENEW="no"
 SINGLEDOMAIN=""
 
+
 ## Function: process_errors --> print error and debug logs to the log file
 process_errors () {
    local ERR="${1}"
@@ -27,6 +28,14 @@ process_errors () {
    if [[ "$ERR" =~ ^"DEBUG" && "$DEBUGLOG" == "true" ]]; then echo -e ">> [${timestamp}]  ${ERR}" >> ${LOGFILE}; fi
    if [[ "$ERR" =~ ^"PANIC" ]]; then echo -e ">> [${timestamp}]  ${ERR}" >> ${LOGFILE}; fi
 }
+
+
+## Function: process_base64_decode --> performs base64 decode addressing any erroneous padding in input
+process_base64_decode() {
+   local INPUT="${1}"
+   echo "$INPUT"==== | fold -w 4 | sed '$ d' | tr -d '\n' | base64 --decode
+}
+
 
 ## Function: process_config_file --> source values from the default or a defined config file
 process_config_file() {
@@ -51,6 +60,7 @@ process_config_file() {
    fi
 }
 
+
 ## Function: (handler) generate_new_cert_key
 ## This function triggers the ACME client directly, which then calls the configured hook script to assist 
 ## in auto-generating a new certificate and private key. The hook script then installs the cert/key if not
@@ -64,6 +74,7 @@ generate_new_cert_key() {
    do=$(eval $cmd 2>&1 | cat | sed 's/^/    /')
    process_errors "DEBUG (handler: ACME client output):\n$do\n"
 }
+
 
 ## Function: (handler) generate_cert_from_csr
 ## This function triggers a CSR creation via TMSH, collects and passes the CSR to the ACME client, then collects
@@ -310,7 +321,8 @@ process_handler_init() {
             ## Exiting registrations (accounts for not empty) --> loop through folder and look for a match (existing registration)
             for acct in $(ls ${ACMEDIR}/accounts)
             do
-               TESTURL=$(base64 -d <<< $acct 2>&1)
+               # TESTURL=$(base64 -d <<< $acct 2>&1)
+               TESTURL=$(process_base64_decode $acct)
                if [[ "$TESTURL" =~ "$BASEURL" ]]
                then
                   ## Matching registration found --> stop
@@ -332,6 +344,17 @@ process_handler_init() {
       printf "PANIC: There was an error accessing the acme_config_dg data group. Please re-install\n\n"
       exit 1
    fi
+}
+
+
+## Function: process_listaccounts --> 
+process_listaccounts() {
+   printf "\nThe following ACME providers are registered:\n\n"
+   for acct in $(ls ${ACMEDIR}/accounts)
+   do
+      printf "   KEY: $acct\n"
+      printf "   URL: $(process_base64_decode $acct)\n\n"
+   done
 }
 
 
@@ -368,7 +391,8 @@ command_help() {
   printf " --help:\t\tPrint this help information\n"
   printf " --init:\t\tDetect configuration errors, register new domains, create port 80 VIPs\n"
   printf " --force:\t\tForce renewal (override data checks)\n"
-  printf " --domain <domain>:\tRenew a single domain (ex. --domain www.f5labs.com)\n\n\n"
+  printf " --domain <domain>:\tRenew a single domain (ex. --domain www.f5labs.com)\n"
+  printf " --listaccounts:\tPrint a list of all registered ACME providers\n\n\n"
 }
 
 
@@ -383,6 +407,11 @@ main() {
 
          --init)
            process_handler_init
+           exit 0
+           ;;
+
+         --listaccounts)
+           process_listaccounts
            exit 0
            ;;
 
