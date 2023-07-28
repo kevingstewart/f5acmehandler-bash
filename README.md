@@ -120,6 +120,7 @@ The ```f5acmehandler.sh``` utility script also supports a set of commandline opt
 | --force            | Overrides the default certificate renewal threshhold check (default 30 days)                     |
 | --domain           | Performs ACME renewal functions for a single specified domain. Can be combined with --force<br />Examples:<br />--domain www.foo.com<br />--domain www.bar.com --force      |
 | --init             | Performs validation checks. Optionally use this command after modifying the global configuration data group<br />- Checks for certificate association to a client SSL profile<br />- Checks for client SSL profile association to an HTTPS virtual server<br />- Checks for HTTP VIP listening on same HTTPS virtual server IP<br />- Creates HTTP VIP if HTTPS VIP exists<br />- Registers any newly-defined ACME providers |                                                                
+| --listaccounts     | Lists the registered ACME provider accounts                                                      |
 | --help             | Shows the help information for above command options                                             |
 </details>
 
