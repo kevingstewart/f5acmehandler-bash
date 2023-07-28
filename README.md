@@ -61,7 +61,12 @@ Configuration Options** section below for additional details. Examples:
 
 ------------
 ### ${\textbf{\color{blue}Configuration\ Details}}$
-Some text...
+Configuration options for this utility are found in the following locations:
+
+* The **Global Configuration Options** define the set of domains that are to be handled, the designated ACME provider, and optional unique local configuration settings. This list is maintained in a BIG-IP data group (```acme_config_dg```).
+* The **ACME Client Configuration Options** define the per-domain ACME client attributes. These settings are maintained in a ```config``` text file stored in the ```/shared/acme``` folder on the BIG-IP.
+* The **Utility Command Line Options** are command line arguments for the ```f5acmehandler.sh``` script used in maintenance operations.
+* The **Scheduling Options** are TBD
 
 <details>
 <summary><b>Global Configuration Options</b></summary>
