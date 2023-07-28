@@ -61,8 +61,8 @@ DEBUGLOG=true
 #OCSP_DAYS=5
 
 # Extended Account Binding (EAB) support
-#EAB_KID=keyid_00
-#EAB_HMAC_KEY=bWFjXzAw
+#EAB_KID=kid-1
+#EAB_HMAC_KEY=zWNDZM6eQGHWpSRTPal5eIUYFTu7EajVIoguysqZ9wG44nMEtx3MUAsUDkMTQ12W
 
 
 
