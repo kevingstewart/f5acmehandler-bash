@@ -64,7 +64,7 @@ Configuration Options** section below for additional details. Examples:
 Configuration options for this utility are found in the following locations:
 
 <details>
-<summary><b>Global Configuration Options</b> define the set of domains that are to be handled, the designated ACME provider, and optional unique local configuration settings. This list is maintained in a BIG-IP data group (```acme_config_dg```)</summary>
+<summary><b>Global Configuration Options</b> define the set of domains that are to be handled, the designated ACME provider, and optional unique local configuration settings. This list is maintained in a BIG-IP data group (acme_config_dg)</summary>
 
 Global configuration options are specified in the ```acme_config_dg``` data group for each domain (certificate subject). Each entry in the data group must include a **String**: the domain name (ex. www.foo.com), and a **Value** consisting of a number of configuration options:
 
@@ -89,7 +89,7 @@ www.baz.com := --ca https://acme.locallab.com:9000/directory -a rsa
 </details>
 
 <details>
-<summary><b>ACME Client Configuration Options</b> define the per-domain ACME client attributes. These settings are maintained in a ```config``` text file stored in the ```/shared/acme``` folder on the BIG-IP.</summary>
+<summary><b>ACME Client Configuration Options</b> define the per-domain ACME client attributes. These settings are maintained in a config text file stored in the "/shared/acme" folder on the BIG-IP.</summary>
 
 Within the ```/shared/acme/config``` file are a number of additional client attributes. This utility allows for per-domain configurations, for example, when EAB is needed for some providers, but not others. Adjust the following atttributes as required for your Acme provider(s).
 
@@ -114,7 +114,7 @@ Within the ```/shared/acme/config``` file are a number of additional client attr
 </details>
 
 <details>
-<summary><b>Utility Command Line Options</b> are command line arguments for the ```f5acmehandler.sh``` script used in maintenance operations.</summary>
+<summary><b>Utility Command Line Options</b> are command line arguments for the f5acmehandler.sh script used in maintenance operations.</summary>
 
 The ```f5acmehandler.sh``` utility script also supports a set of commandline options for general maintenance usage. When no command options are specified, the utility loops through the ```acme_config_dg``` data group and performs required ACME certificate renewal operations for each configured domain.
 
