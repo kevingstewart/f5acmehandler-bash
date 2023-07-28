@@ -69,7 +69,7 @@ Configuration options for this utility are found in the following locations:
 * The **Scheduling Options** are TBD
 
 <details>
-<summary><b>Global Configuration Options</b></summary>
+<summary><b>Global Configuration Options</b> define the set of domains that are to be handled, the designated ACME provider, and optional unique local configuration settings. This list is maintained in a BIG-IP data group (```acme_config_dg```)</summary>
 
 Global configuration options are specified in the ```acme_config_dg``` data group for each domain (certificate subject). Each entry in the data group must include a **String**: the domain name (ex. www.foo.com), and a **Value** consisting of a number of configuration options:
 
