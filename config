@@ -64,6 +64,15 @@ DEBUGLOG=true
 #EAB_KID=kid-1
 #EAB_HMAC_KEY=zWNDZM6eQGHWpSRTPal5eIUYFTu7EajVIoguysqZ9wG44nMEtx3MUAsUDkMTQ12W
 
+## Set to true to install the complete certificate chain, or false to only install the leaf certificate (default: true)
+#FULLCHAIN=true
+
+## Set the preferred number of zeroization cycles for shredding created private keys (default: 3 cycles)
+#ZEROCYCLE=3
+
+## Set to true to generate new client SSL profiles with new certs/keys (default: false)
+#CREATEPROFILE=false
+
 
 
 ########################################################
