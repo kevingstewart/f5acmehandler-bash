@@ -44,6 +44,7 @@ process_config_file() {
    ## Set default values
    THRESHOLD=30
    ALWAYS_GENERATE_KEY=false
+   FULLCHAIN=true
    ERRORLOG=true
    DEBUGLOG=false
 
@@ -69,6 +70,7 @@ generate_new_cert_key() {
    local DOMAIN="${1}" COMMAND="${2}"
    process_errors "DEBUG (handler function: generate_new_cert_key)\n   DOMAIN=${DOMAIN}\n   COMMAND=${COMMAND}\n"
 
+   ## Trigger ACME client. All BIG-IP certificate management is then handled by the hook script
    cmd="${ACMEDIR}/dehydrated ${STANDARD_OPTIONS} -c -g -d ${DOMAIN} $(echo ${COMMAND} | tr -d '"')"
    process_errors "DEBUG (handler: ACME client command):\n$cmd\n"
    do=$(eval $cmd 2>&1 | cat | sed 's/^/    /')
@@ -100,7 +102,7 @@ generate_cert_from_csr() {
    tmsh list sys crypto csr ${DOMAIN} |sed -n '/-----BEGIN CERTIFICATE REQUEST-----/,/-----END CERTIFICATE REQUEST-----/p' > ${ACMEDIR}/certs/${DOMAIN}/cert.csr
    process_errors "DEBUG (handler: csr):\n$(cat ${ACMEDIR}/certs/${DOMAIN}/cert.csr | sed 's/^/   /')\n"
 
-   ## Issue acme client call and dump renewed cert to certs/{domain}/cert.pem
+   ## Trigger ACME client and dump renewed cert to certs/{domain}/cert.pem
    cmd="${ACMEDIR}/dehydrated ${STANDARD_OPTIONS} -s ${ACMEDIR}/certs/${DOMAIN}/cert.csr $(echo ${COMMAND} | tr -d '"')"
    process_errors "DEBUG (handler: ACME client command):\n   $cmd\n"
    do=$(eval $cmd 2>&1 | cat | sed 's/^/    /')
@@ -108,7 +110,12 @@ generate_cert_from_csr() {
 
    if [[ $do =~ "# CERT #" ]]
    then
-      cat $do 2>&1 | sed -n '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p;/-END CERTIFICATE-/q' | sed -E 's/^\s+//g' > ${ACMEDIR}/certs/${DOMAIN}/cert.pem
+      if [[ "${FULLCHAIN}" == "true" ]]
+      then
+         cat $do 2>&1 | sed -n '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sed -E 's/^\s+//g' > ${ACMEDIR}/certs/${DOMAIN}/cert.pem
+      else
+         cat $do 2>&1 | sed -n '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p;/-END CERTIFICATE-/q' | sed -E 's/^\s+//g' > ${ACMEDIR}/certs/${DOMAIN}/cert.pem
+      fi
    else
       process_errors "ERROR: ACME client failure: $do\n"
       return
@@ -194,7 +201,7 @@ process_handler_config () {
 ##    - Test if HTTP VIP does not exist (that matches HTTPS IP) --> create and add iRule if true (missing), add iRule if false (present)
 ## -- Register new domains (if not already registered)
 process_handler_init() {
-   init_report="Init Report:\n"
+   init_report="\nInit Report:\n"
    
    ## Create list of existing client SSL profiles and attached certificates (profile=cert)
    certlist=$(tmsh -q list ltm profile client-ssl recursive one-line | sed -E 's/ltm profile client-ssl ([^[:space:]]+)\s.+\scert\s([^[:space:]]+)\s.*/\1=\2/g')
@@ -208,7 +215,7 @@ process_handler_init() {
       do
          ## Extract domain and command values
          IFS="=" read -r DOMAIN COMMAND <<< $v
-         init_report="${init_report}  -- ${DOMAIN}:\n"
+         init_report="${init_report}  \n-- ${DOMAIN}:\n"
 
 
          #####################
@@ -305,6 +312,12 @@ process_handler_init() {
          ## Extract --ca and --config values
          if [[ "$COMMAND" =~ "--ca " ]]; then COMMAND_CA=$(echo "$COMMAND" | sed -E 's/.*(--ca+\s[^[:space:]]+).*/\1/g;s/"//g'); else COMMAND_CA=""; fi
          if [[ "$COMMAND" =~ "--config " ]]; then COMMAND_CONFIG=$(echo "$COMMAND" | sed -E 's/.*(--config+\s[^[:space:]]+).*/\1/g;s/"//g'); else COMMAND_CONFIG=""; fi
+
+         ## Test if --config is defined but file doesn't exist
+         if [[ ! -z "$COMMAND_CONFIG" && ! -f "$(echo $COMMAND_CONFIG | sed -E 's/--config //')" ]]
+         then
+            init_report="${init_report}\tERROR: Defined config file for ($DOMAIN) does not exist: $(echo $COMMAND_CONFIG | sed -E 's/--config //')\n"
+         fi
 
          ## Get base URL from COMMAND_CA
          BASEURL=$(echo $COMMAND_CA | sed -E 's/.*(https:\/\/[^\/]+).*/\1/g')
