@@ -137,23 +137,34 @@ Provided below are detailed descriptions of the control flows. The **ACME Functi
 <details>
 <summary><b>ACME Functional Flow on BIG-IP</b></summary>
 
-The fundamental functional flow is illustrated here. On ```f5acmehandler.sh``` initiation, the ```acme_config_dg``` data group is read, and for each domain entry the following logic is applied:
+The fundamental functional flow is illustrated here. 
 
-* If the domain (certificate) does not exist on the BIG-IP, the ACME client is triggered directly with corresponding configuration settings. During ACME client processing, a separate ```hook``` script is called to perform the following actions:
+![ACME Functional Flow on BIG-IP](images/control-flow-diagram-f5acmehandler.png)
 
-  - **deploy_challenge**: Take the token filename and token value passed to the client from the ACME server, and insert those as ephemeral entries in a ```acme_handler_dg``` data group.
+On ```f5acmehandler.sh``` script initiation, the ```acme_config_dg``` data group is read, and for each domain entry the following logic is applied:
 
-  - **clean_challenge**: Once the ACME server has completed its (http-01) challenge, the ephemeral entry is removed from the data group.
+* **Certificate does not exist**: If the domain (certificate) does not exist on the BIG-IP, the ACME client is triggered directly with corresponding configuration settings. During ACME client processing, a separate ```hook``` script is called to perform the following actions:
+
+  - **deploy_challenge**: Take the token filename and token value passed to the client from the ACME server, and insert those as ephemeral entries in an ```acme_handler_dg``` data group. The ACME server will issue an http-01 challenge to a corresponding HTTP virtual server on the BIG-IP. An iRule on the VIP reads from the data group and responds to the ACME challenge with the correct token.
+
+  - **clean_challenge**: Once the ACME server has completed its http-01 challenge, the ephemeral entry is removed from the data group.
 
   - **deploy_cert**: The ACME server will return a new certificate and private key to the ACME client, which is then installed to the BIG-IP.
 
 <br />
 
-* If the domain (certificate)
+* **Certificate exists**: If the domain (certificate) exists on the BIG-IP, the certificate's expiration date is compared to the defined THRESHOLD value. If the date is less than the THRESHOLD, processing for this domain ends. If the date is greater than or equal to the THRESHOLD, or the ```--force``` commandline argument is used with f5acmehandler.sh:
 
-![ACME Functional Flow on BIG-IP](images/control-flow-diagram-f5acmehandler.png)
+  - **Always generate key**: If the **ALWAYS_GENERATE_KEY** setting is true, the ACME client is triggered directly and continues as described above as if the certificate does not exist. In this case, however, the resulting certificate and private key *replace* an existing certificate/key pair on the BIG-IP.
+ 
+  - **Generate CSR**: Otherwise, a CSR is generated from the existing private key and then passed to the ACME client. When using the ACME client with a CSR, only the ```deploy_challenge``` and ```clean_challenge``` functions are called. The renewed certificate is passed back to f5acmehandler, which then replaces the existing certificate on the BIG-IP.
 
 <br />
+
+***Note***: Any key material created in the BIG-IP file system is *zeroized* with a minimal of three wipe cycles. This can be changed by adjusting the **ZEROCYCLE** value in the ```f5hook.sh``` script.
+
+<br />
+
 
 </details>
 
