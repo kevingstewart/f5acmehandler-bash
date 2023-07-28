@@ -266,7 +266,7 @@ There are a number of ways to test the ```f5acmehandler``` utility, including va
 
 ------------
 ### ${\textbf{\color{blue}Credits}}$
-Special thanks to @f5-rahm and his [lets-encrypt-python](https://github.com/f5devcentral/lets-encrypt-python) project for inspiration.
+Special thanks to [@f5-rahm](https://github.com/f5-rahm) and his [lets-encrypt-python](https://github.com/f5devcentral/lets-encrypt-python) project for inspiration.
 
 <br />
 <br />
