@@ -127,15 +127,40 @@ The ```f5acmehandler.sh``` utility script also supports a set of commandline opt
 | **Command Option** | **Description**                                                                                  |
 |--------------------|--------------------------------------------------------------------------------------------------|
 | --force            | Overrides the default certificate renewal threshhold check (default 30 days)                     |
-| --domain           | Performs ACME renewal functions for a single specified domain. Can be combined with --force<br />Examples:<br />--domain www.foo.com<br />--domain www.bar.com --force      |
+| --domain [domain]  | Performs ACME renewal functions for a single specified domain. Can be combined with --force<br />Examples:<br />--domain www.foo.com<br />--domain www.bar.com --force      |
 | --init             | Performs validation checks. Optionally use this command after modifying the global configuration data group<br />- Checks for certificate association to a client SSL profile<br />- Checks for client SSL profile association to an HTTPS virtual server<br />- Checks for HTTP VIP listening on same HTTPS virtual server IP<br />- Creates HTTP VIP if HTTPS VIP exists<br />- Registers any newly-defined ACME providers |                                                                
 | --listaccounts     | Lists the registered ACME provider accounts                                                      |
+| --schedule [cron]  | Takes a cron string and installs this utility as a cron-scheduled process                        |
+| --uninstall        | Deletes the cron scheduling                                                                      |
 | --help             | Shows the help information for above command options                                             |
 </details>
 
 <details>
 <summary><b>Scheduling Options</b></summary>
-TODO
+
+<br />
+
+Scheduling is configured by adding the **--scheduling** command line argument, followed by a valid cron string. No validation is performed on the cron string input. Please take care to enter a valid string. A few recommended resources for developing cron strings are here:
+
+* [Crontab Guru](https://crontab.guru/)
+* [CronDrive](https://www.crondrive.com/test-cron-expression)
+
+As a quick example:
+
+| **Cron String** | **Description**                                                                                          |
+|-----------------|----------------------------------------------------------------------------------------------------------|
+| 00 04 1 * *     | Sets a **monthly** schedule to initiate an update on the **1st** day of each month at **04:00**          |
+| 00 04 * * 1     | Sets a **weekly** schedule to initiate an update on **Monday** of every week at **04:00**                |
+| 00 04 * * *     | Sets a **daily** schedule to initiate an update every day at **04:00**                                   |
+
+where:
+
+    1. minutes (0-59)
+    2. hour (0-23)
+    3. day of the month (1-31)
+    4. month (1-12)
+    5. day of the week (0-6)
+
 </details>
 
 <br />
