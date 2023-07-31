@@ -32,8 +32,9 @@ process_errors () {
 
 ## Function: process_base64_decode --> performs base64 decode addressing any erroneous padding in input
 process_base64_decode() {
-   local INPUT="${1}"
-   echo "$INPUT"==== | fold -w 4 | sed '$ d' | tr -d '\n' | base64 --decode
+   # local INPUT="${1}"
+   # echo "$INPUT"==== | fold -w 4 | sed '$ d' | tr -d '\n' | base64 --decode
+   echo "${1}"==== | fold -w 4 | sed '$ d' | tr -d '\n' | base64 --decode
 }
 
 
@@ -57,7 +58,13 @@ process_config_file() {
    else
       ## Alternate config specified --> source from this alternate config file
       THIS_COMMAND_CONFIG=$(echo ${COMMAND_CONFIG} | sed -E 's/--config //')
-      . "${THIS_COMMAND_CONFIG}"
+      if [[ ! -f "${THIS_COMMAND_CONFIG}" ]]
+      then
+         process_errors "PANIC: Specified config file for (${DOMAIN}) does not exist (${THIS_COMMAND_CONFIG})\n"
+         continue
+      else
+         . "${THIS_COMMAND_CONFIG}"
+      fi
    fi
 }
 
@@ -75,6 +82,20 @@ generate_new_cert_key() {
    process_errors "DEBUG (handler: ACME client command):\n$cmd\n"
    do=$(eval $cmd 2>&1 | cat | sed 's/^/    /')
    process_errors "DEBUG (handler: ACME client output):\n$do\n"
+
+   ## Catch registration errors
+   if [[ $do =~ "To use dehydrated with this certificate authority you have to agree to their terms of service which you can find here:" ]]
+   then
+      process_errors "PANIC: Registration for (${DOMAIN}) has not been completed. Please use './f5acmehandler.sh --init' to initialize all ACME providers.\n\n"
+      continue
+   fi
+
+   ## Catch connectivity errors
+   if [[ $do =~ "ERROR: Problem connecting to server" ]]
+   then
+      process_errors "PANIC: Connectivity error for (${DOMAIN}). Please verify configuration (${COMMAND}).\n\n"
+      continue
+   fi
 }
 
 
@@ -108,6 +129,21 @@ generate_cert_from_csr() {
    do=$(eval $cmd 2>&1 | cat | sed 's/^/    /')
    process_errors "DEBUG (handler: ACME client output):\n$do\n"
 
+   ## Catch registration errors
+   if [[ $do =~ "To use dehydrated with this certificate authority you have to agree to their terms of service which you can find here:" ]]
+   then
+      process_errors "PANIC: Registration for (${DOMAIN}) has not been completed. Please use './f5acmehandler.sh --init' to initialize all ACME providers.\n\n"
+      continue
+   fi
+
+   ## Catch connectivity errors
+   if [[ $do =~ "ERROR: Problem connecting to server" ]]
+   then
+      process_errors "PANIC: Connectivity error for (${DOMAIN}). Please verify configuration (${COMMAND}).\n\n"
+      continue
+   fi
+
+   ## Catch and process returned certificate
    if [[ $do =~ "# CERT #" ]]
    then
       if [[ "${FULLCHAIN}" == "true" ]]
@@ -316,7 +352,8 @@ process_handler_init() {
          ## Test if --config is defined but file doesn't exist
          if [[ ! -z "$COMMAND_CONFIG" && ! -f "$(echo $COMMAND_CONFIG | sed -E 's/--config //')" ]]
          then
-            init_report="${init_report}\tERROR: Defined config file for ($DOMAIN) does not exist: $(echo $COMMAND_CONFIG | sed -E 's/--config //')\n"
+            init_report="${init_report}\tPANIC: Defined config file for ($DOMAIN) does not exist: $(echo $COMMAND_CONFIG | sed -E 's/--config //')\n"
+            continue
          fi
 
          ## Get base URL from COMMAND_CA
@@ -332,22 +369,27 @@ process_handler_init() {
             init_report="${init_report}$do\n"
          else
             ## Exiting registrations (accounts for not empty) --> loop through folder and look for a match (existing registration)
-            for acct in $(ls ${ACMEDIR}/accounts)
+            for acct in ${ACMEDIR}/accounts/*
             do
-               # TESTURL=$(base64 -d <<< $acct 2>&1)
-               TESTURL=$(process_base64_decode $acct)
+               acct_tmp=$(echo $acct | sed -E 's/\/shared\/acme\/accounts\///')
+               TESTURL=$(process_base64_decode $acct_tmp)
+               found=0
                if [[ "$TESTURL" =~ "$BASEURL" ]]
                then
                   ## Matching registration found --> stop
-                  init_report="${init_report}\tAlready registered for specified CA ($COMMAND_CA).\n"
-               else
-                  ## No matching registration found --> perform registration
-                  init_report="${init_report}\tNo existing registered for specified CA ($COMMAND_CA). Performing registration...\n"
-                  cmd="${ACMEDIR}/dehydrated --register --accept-terms ${COMMAND_CA} ${COMMAND_CONFIG}"
-                  do=$(eval $cmd 2>&1 | cat | sed 's/^/        /')
-                  init_report="${init_report}$do\n"
+                  found=1
                fi
             done
+
+            if [[ "$found" == 1 ]]
+            then
+               init_report="${init_report}\tAlready registered for specified CA ($COMMAND_CA).\n"
+            else
+               init_report="${init_report}\tNo existing registered for specified CA ($COMMAND_CA). Performing registration...\n"
+               cmd="${ACMEDIR}/dehydrated --register --accept-terms ${COMMAND_CA} ${COMMAND_CONFIG}"
+               do=$(eval $cmd 2>&1 | cat | sed 's/^/        /')
+               init_report="${init_report}$do\n"
+            fi
          fi
       done
 
@@ -360,7 +402,7 @@ process_handler_init() {
 }
 
 
-## Function: process_listaccounts --> 
+## Function: process_listaccounts --> loop through the accounts folder and print the encoded and decoded values for each registered account
 process_listaccounts() {
    printf "\nThe following ACME providers are registered:\n\n"
    for acct in $(ls ${ACMEDIR}/accounts)
@@ -368,6 +410,36 @@ process_listaccounts() {
       printf "   KEY: $acct\n"
       printf "   URL: $(process_base64_decode $acct)\n\n"
    done
+}
+
+
+## Function: process_schedule --> accept a cron string value and create a crontab entry for this utility
+process_schedule() {
+   local CRON="${1}"
+   ## Validate cron string
+   # testcron=$(echo "$CRON" | sed -E 's/([0-5]?[0-9])\s(0?([0-9]|1[0-9]|2[0-3]))\s(0?[1-9]|[12][0-9]|3[01]|\*)\s([1-9]|1[0-2]|\*)\s([0-6]|\*)/match/g')
+   # if [[ "$testcron" == "match" ]]
+   # then
+   #    echo "cronstring valid"
+   # else
+   #    echo "cronstring invalid"
+   # fi
+
+   ## Get current user
+   myuser=$(whoami)
+
+   ## Clear out any existing script entry
+   crontab -l |grep -v f5acmehandler | crontab
+
+   ## Write entry to bottom of the file
+   echo "${CRON} /shared/acme/f5acmehandler.sh" >> /var/spool/cron/${myuser}
+}
+
+
+## Function: process_uninstall --> uninstall the crontab entry
+process_uninstall() {
+   ## Clear out any existing script entry
+   crontab -l |grep -v f5acmehandler | crontab
 }
 
 
@@ -398,14 +470,19 @@ process_handler_main() {
 command_help() {
   printf "\nUsage: %s [--help]\n"
   printf "Usage: %s [--init]\n"
-  printf "Usage: %s [--force] [--domain <domain>]\n\n"
+  printf "Usage: %s [--force] [--domain <domain>]\n"
+  printf "Usage: %s [--listaccounts]\n"
+  printf "Usage: %s [--schedule <cron>]\n"
+  printf "Usage: %s [--uninstall]\n\n"
   printf "Default (no arguments): renewal operations\n"
   printf -- "\nParameters:\n"
   printf " --help:\t\tPrint this help information\n"
   printf " --init:\t\tDetect configuration errors, register new domains, create port 80 VIPs\n"
   printf " --force:\t\tForce renewal (override data checks)\n"
   printf " --domain <domain>:\tRenew a single domain (ex. --domain www.f5labs.com)\n"
-  printf " --listaccounts:\tPrint a list of all registered ACME providers\n\n\n"
+  printf " --listaccounts:\tPrint a list of all registered ACME providers\n"
+  printf " --schedule <cron>:\tInstall/update the scheduler. See REPO for scheduling instructions\n"
+  printf " --uninstall:\t\tUninstall the scheduler\n"
 }
 
 
@@ -428,6 +505,23 @@ main() {
            exit 0
            ;;
 
+         --schedule)
+           shift 1
+           if [[ -z "${1:-}" ]]; then
+             printf "\nThe specified command requires an additional parameter. Please see --help:" >&2
+             echo >&2
+             command_help >&2
+             exit 1
+           fi
+           process_schedule "${1}"
+           exit 0
+           ;;
+
+         --uninstall)
+           process_uninstall
+           exit 0
+           ;;
+
          --force)
            FORCERENEW="yes"
            ;;
@@ -435,7 +529,7 @@ main() {
          --domain)
            shift 1
            if [[ -z "${1:-}" ]]; then
-             printf "\nThe specified command requires additional parameters. See help:" >&2
+             printf "\nThe specified command requires additional an parameter. Please see --help:" >&2
              echo >&2
              command_help >&2
              exit 1
