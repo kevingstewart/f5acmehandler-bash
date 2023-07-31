@@ -55,9 +55,13 @@ Configuration Options** section below for additional details. Examples:
     ./f5acmehandler.sh
     ```
 
-* ${\large{\textbf{\color{red}Step\ 7}}}$ (Schedule):  Once all configuration updates have been made and the utility function is working as desired, define scheduling to automate the process. By default, each domain (certificate) is checked against the defined threshold (default: 30 days) and only continues if the threshold is exceeded. See the **Scheduling** section below for additional details.
+* ${\large{\textbf{\color{red}Step\ 7}}}$ (Schedule):  Once all configuration updates have been made and the utility function is working as desired, define scheduling to automate the process. By default, each domain (certificate) is checked against the defined threshold (default: 30 days) and only continues if the threshold is exceeded. See the **Scheduling** section below for additional details. For example, to set a weekly schedule, to initiate an update check **every Monday at 4am**:
 
-    TODO...
+    ```
+    cd /shared/acme
+    ./f5acmehandler.sh --schedule "00 04 * * 1"
+    ```
+
 <br />
 
 ------------
@@ -161,6 +165,10 @@ where:
     3. day of the month (1-31)
     4. month (1-12)
     5. day of the week (0-6)
+
+```
+./f5acmehandler.sh --schedule "00 04 * * 1"
+```
 
 </details>
 
