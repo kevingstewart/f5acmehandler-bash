@@ -11,6 +11,7 @@ This utility defines a wrapper for the Bash-based [Dehydrated](https://github.co
 * Supports OCSP and periodic revocation testing
 * Supports explicit proxy egress
 * Supports SAN certificate renewal
+* Supports scheduling
 * Supports debug logging
 
 <br />
