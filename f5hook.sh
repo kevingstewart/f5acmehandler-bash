@@ -123,7 +123,7 @@ deploy_cert() {
 }
 
 
-## Function: sync_cert --> called by ACME client...
+## Function: sync_cert --> called by ACME client, waits for hook script to sync the files before creating the symlinks
 sync_cert() {
     local KEYFILE="${1}" CERTFILE="${2}" FULLCHAINFILE="${3}" CHAINFILE="${4}" REQUESTFILE="${5}"
     process_errors "DEBUG (hook function: sync_cert)\n   KEYFILE=${KEYFILE}\n   CERTFILE=${CERTFILE}\n   FULLCHAINFILE=${FULLCHAINFILE}\n   CHAINFILE=${CHAINFILE}\n   REQUESTFILE=${REQUESTFILE}\n"
@@ -137,14 +137,14 @@ deploy_ocsp() {
 }
 
 
-## Function: unchanged_cert --> called by ACME client...
+## Function: unchanged_cert --> called by ACME client, check expire date of existing certificate
 unchanged_cert() {
     local DOMAIN="${1}" KEYFILE="${2}" CERTFILE="${3}" FULLCHAINFILE="${4}" CHAINFILE="${5}"
     process_errors "DEBUG (hook function: unchanged_cert)\n   DOMAIN=${DOMAIN}\n   KEYFILE=${KEYFILE}\n   CERTFILE=${CERTFILE}\n   FULLCHAINFILE=${FULLCHAINFILE}\n   CHAINFILE=${CHAINFILE}\n"
 }
 
 
-## Function: invalid_challenge --> called by ACME client...
+## Function: invalid_challenge --> called by ACME client, triggered when the challenge request status has failed (is invalid)
 invalid_challenge() {
     local DOMAIN="${1}" RESPONSE="${2}"
     process_errors "DEBUG (hook function: invalid_challenge)\n   DOMAIN=${DOMAIN}\n   RESPONSE=${RESPONSE}\n"
@@ -158,7 +158,7 @@ request_failure() {
 }
 
 
-## Function: generate_csr --> called by ACME client...
+## Function: generate_csr --> called by ACME client, triggered when an external CSR is passed in
 generate_csr() {
     local DOMAIN="${1}" CERTDIR="${2}" ALTNAMES="${3}"
     process_errors "DEBUG (hook function: generate_csr)\n   DOMAIN={DOMAIN}\n   CERTDIR=${CERTDIR}\n   ALTNAMES=${ALTNAMES}\n"
