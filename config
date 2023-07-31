@@ -82,6 +82,10 @@ DEBUGLOG=true
 # Output directory for challenge-tokens to be served by webserver or deployed in HOOK (default: /var/www/dehydrated)
 WELLKNOWN="/tmp/wellknown"
 
+# Program or function called in certain situations
+# BASEDIR and WELLKNOWN variables are exported and can be used in an external program
+HOOK=${BASEDIR}/f5hook.sh
+
 
 
 
