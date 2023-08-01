@@ -247,7 +247,7 @@ TODO
 </details>
 
 <details>
-<summary><b>BIG-IQ Support</b></summary>
+<summary><b>Working with BIG-IQ</b></summary>
 TODO
 </details>
 
