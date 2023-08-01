@@ -405,10 +405,11 @@ process_handler_init() {
 ## Function: process_listaccounts --> loop through the accounts folder and print the encoded and decoded values for each registered account
 process_listaccounts() {
    printf "\nThe following ACME providers are registered:\n\n"
-   for acct in $(ls ${ACMEDIR}/accounts)
+   for acct in ${ACMEDIR}/accounts/*
    do
-      printf "   KEY: $acct\n"
-      printf "   URL: $(process_base64_decode $acct)\n\n"
+      acct_tmp=$(echo $acct | sed -E 's/\/shared\/acme\/accounts\///')
+      printf "   PROVIDER: $(process_base64_decode $acct_tmp)\n"
+      printf "   LOCATION: /shared/acme/accounts/$acct_tmp\n\n"
    done
 }
 
@@ -416,23 +417,29 @@ process_listaccounts() {
 ## Function: process_schedule --> accept a cron string value and create a crontab entry for this utility
 process_schedule() {
    local CRON="${1}"
-   ## Validate cron string
-   # testcron=$(echo "$CRON" | sed -E 's/([0-5]?[0-9])\s(0?([0-9]|1[0-9]|2[0-3]))\s(0?[1-9]|[12][0-9]|3[01]|\*)\s([1-9]|1[0-2]|\*)\s([0-6]|\*)/match/g')
-   # if [[ "$testcron" == "match" ]]
-   # then
-   #    echo "cronstring valid"
-   # else
-   #    echo "cronstring invalid"
-   # fi
 
-   ## Get current user
-   myuser=$(whoami)
+   ## Validate cron string - currently does a basic structure check (to refine later...)
+   testcron=$(echo "$CRON" | sed -E 's/^([[:digit:]\,\-\*\/]+)\s([[:digit:]\,\-\*\/]+)\s([[:digit:]\,\-\*\/]+)\s([[:digit:]\,\-\*\/]+)\s([[:digit:]\,\-\*\/]+)$/match/g')
+   if [[ "$testcron" == "match" ]]
+   then
+      ## Presumably correct cron string entered --> add to crontab
 
-   ## Clear out any existing script entry
-   crontab -l |grep -v f5acmehandler | crontab
+      ## Get current user
+      myuser=$(whoami)
 
-   ## Write entry to bottom of the file
-   echo "${CRON} /shared/acme/f5acmehandler.sh" >> /var/spool/cron/${myuser}
+      ## Clear out any existing script entry
+      crontab -l |grep -v f5acmehandler | crontab
+
+      ## Write entry to bottom of the file
+      echo "${CRON} /shared/acme/f5acmehandler.sh" >> /var/spool/cron/${myuser}
+
+      printf "\nThe f5acmehandler script has been scheduled. Current crontab:\n\n"
+      crontab -l | sed 's/^/   /'
+      printf "\n\n"
+
+   else
+      printf "\nERROR: Please correct the format of supplied cron string. No schedule applied.\n\n"
+   fi
 }
 
 
