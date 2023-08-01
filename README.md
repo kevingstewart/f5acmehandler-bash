@@ -242,13 +242,18 @@ EAB_HMAC_KEY=zWNDZM6eQGHWpSRTPal5eIUYFTu7EajVIoguysqZ9wG44nMEtx3MUAsUDkMTQ12W
 </details>
 
 <details>
+<summary><b>Reporting</b></summary>
+In development...
+</details>
+
+<details>
 <summary><b>OCSP and Periodic Revocation Testing</b></summary>
-TODO
+In development...
 </details>
 
 <details>
 <summary><b>Working with BIG-IQ</b></summary>
-TODO
+In development...
 </details>
 
 <br />
