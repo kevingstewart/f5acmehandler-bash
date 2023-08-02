@@ -48,6 +48,7 @@ process_config_file() {
    FULLCHAIN=true
    ERRORLOG=true
    DEBUGLOG=false
+   CHECK_REVOCATION=false
 
    ## Extract --config value and read config values
    if [[ "$COMMAND" =~ "--config " ]]; then COMMAND_CONFIG=$(echo "$COMMAND" | sed -E 's/.*(--config+\s[^[:space:]]+).*/\1/g;s/"//g'); else COMMAND_CONFIG=""; fi
@@ -198,10 +199,15 @@ process_handler_config () {
    then
       process_errors "DEBUG: Certificate does not exist, or ALWAYS_GENERATE_KEY is true --> call generate_new_cert_key.\n"
       generate_new_cert_key "$DOMAIN" "$COMMAND"
-
+   
+   elif [[ "$certexists" == "true" && "$CHECK_REVOCATION" == "true" && "$(process_revocation_check "${DOMAIN}")" == "revoked" ]]
+   then
+      process_errors "DEBUG: Certificate exists, CHECK_REVOCATION is enabled, and revocation check found that (${DOMAIN}) is revoked -- Fetching new certificate and key"
+      generate_new_cert_key "$DOMAIN" "$COMMAND"
+   
    else
       ## Else call the generate_cert_from_csr function
-      process_errors "DEBUG: Certificate exists, or ALWAYS_GENERATE_KEY is false --> call generate_cert_from_csr.\n"
+      process_errors "DEBUG: Certificate exists and ALWAYS_GENERATE_KEY is false --> call generate_cert_from_csr.\n"
 
       ## Collect today's date and certificate expiration date
       if [[ ! "${FORCERENEW}" == "yes" ]]
@@ -402,6 +408,39 @@ process_handler_init() {
 }
 
 
+## Function: process_revocation_check --> consume BIG-IP certificate object name as input and attempt to perform a direct OCSP revocation check
+process_revocation_check() {
+   ## Fetch PEM certificate from BIG-IP, separate into cert and chain, and get OCSP URI
+   local INCERT="${1}"
+   FULLCHAIN=$(cat $(tmsh list sys file ssl-cert "$INCERT" all-properties -hidden | grep cache-path | sed -E 's/^\s+cache-path\s//') | sed -n '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p')
+   CERT="${FULLCHAIN%%-----END CERTIFICATE-----*}-----END CERTIFICATE-----"
+   CHAIN=$(echo -e "${FULLCHAIN#*-----END CERTIFICATE-----}" | sed '/./,$!d')
+   OCSPURL=$(echo "$CERT" | openssl x509 -noout -ocsp_uri)
+
+   ## If CERT, CHAIN, and OCSPURL are not empty, attempt to perform OCSP check and return "revoked", "notrevoked", or "unavailable"
+   if [[ ! -z "${CERT:-}" && ! -z "${CHAIN:-}" && ! -z "${OCSPURL:-}" ]]
+   then
+      ## Get hostname from OCSP URI
+      OCSPHOST=$(echo $OCSPURL | sed -E 's/^https?:\/\/([^:|\/]+)[:\/]?.*/\1/')
+      
+      ## Perform revocation check
+      revstate=$(openssl ocsp -issuer <(echo "$CHAIN") -cert <(echo "$CERT") -url "${OCSPURL}" -header "HOST" "${OCSPHOST}" -noverify)
+      
+      ## Test for "revoked" in response
+      if [[ "$revstate" =~ "revoked" ]]
+      then
+         echo "revoked"
+      else
+         echo "notrevoked"
+      fi
+   else
+      ## Either there's no chain (issuer) for this cert, or no defined OCSP URI --> exit with 'none'
+      echo "unavailable"
+   fi
+   
+}
+
+
 ## Function: process_listaccounts --> loop through the accounts folder and print the encoded and decoded values for each registered account
 process_listaccounts() {
    printf "\nThe following ACME providers are registered:\n\n"
@@ -480,16 +519,18 @@ command_help() {
   printf "Usage: %s [--force] [--domain <domain>]\n"
   printf "Usage: %s [--listaccounts]\n"
   printf "Usage: %s [--schedule <cron>]\n"
+  printf "Usage: %s [--testrevocation <domain>]\n"
   printf "Usage: %s [--uninstall]\n\n"
   printf "Default (no arguments): renewal operations\n"
   printf -- "\nParameters:\n"
-  printf " --help:\t\tPrint this help information\n"
-  printf " --init:\t\tDetect configuration errors, register new domains, create port 80 VIPs\n"
-  printf " --force:\t\tForce renewal (override data checks)\n"
-  printf " --domain <domain>:\tRenew a single domain (ex. --domain www.f5labs.com)\n"
-  printf " --listaccounts:\tPrint a list of all registered ACME providers\n"
-  printf " --schedule <cron>:\tInstall/update the scheduler. See REPO for scheduling instructions\n"
-  printf " --uninstall:\t\tUninstall the scheduler\n"
+  printf " --help:\t\t\tPrint this help information\n"
+  printf " --init:\t\t\tDetect configuration errors, register new domains, create port 80 VIPs\n"
+  printf " --force:\t\t\tForce renewal (override data checks)\n"
+  printf " --domain <domain>:\t\tRenew a single domain (ex. --domain www.f5labs.com)\n"
+  printf " --listaccounts:\t\tPrint a list of all registered ACME providers\n"
+  printf " --schedule <cron>:\t\tInstall/update the scheduler. See REPO for scheduling instructions\n"
+  printf " --testrevocation <domain>:\tAttempt to performs an OCSP revocation check on an existing certificate (domain)\n"
+  printf " --uninstall:\t\t\tUninstall the scheduler\n\n\n"
 }
 
 
@@ -526,6 +567,18 @@ main() {
 
          --uninstall)
            process_uninstall
+           exit 0
+           ;;
+
+         --testrevocation)
+           shift 1
+           if [[ -z "${1:-}" ]]; then
+             printf "\nThe specified command requires an additional parameter. Please see --help:" >&2
+             echo >&2
+             command_help >&2
+             exit 1
+           fi
+           process_revocation_check "${1}"
            exit 0
            ;;
 
