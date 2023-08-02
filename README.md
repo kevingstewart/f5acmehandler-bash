@@ -2,6 +2,8 @@
 
 ### An ACMEv2 client wrapper function for integration and advanced features on the F5 BIG-IP
 
+### DRAFT: In Development
+
 This utility defines a wrapper for the Bash-based [Dehydrated](https://github.com/dehydrated-io/dehydrated) ACMEv2 client, supporting direct integration with F5 BIG-IP, and including additional advanced features:
 
 * Simple installation, configuration, and scheduling
@@ -111,6 +113,7 @@ Within the ```/shared/acme/config``` file are a number of additional client attr
 | OCSP_MUST_STAPLE      | Option to add CSR-flag indicating OCSP stapling to be mandatory (default: no)                                                                   |
 | THRESHOLD             | Threshold in days when a certificate must be renewed (default: 30 days)                                                                         |
 | ALWAYS_GENERATE_KEY   | Set to true to always generate a private key. Otherwise a CSR is created from an existing key to support HSM/FIPS environments (default: false) |
+| CHECK_REVOCATION      | Set to true to attempt OCSP revocation check on existing certificates (default: false)                                                          |
 | ERRORLOG              | Set to true to generate error logging (default: true)                                                                                           |
 | DEBUGLOG              | Set to true to generate debug logging (default: false)                                                                                          |
 | RENEW_DAYS            | Minimum days before expiration to automatically renew certificate (default: 30)                                                                 |
@@ -129,15 +132,16 @@ Within the ```/shared/acme/config``` file are a number of additional client attr
 
 The ```f5acmehandler.sh``` utility script also supports a set of commandline options for general maintenance usage. When no command options are specified, the utility loops through the ```acme_config_dg``` data group and performs required ACME certificate renewal operations for each configured domain.
 
-| **Command Option** | **Description**                                                                                  |
-|--------------------|--------------------------------------------------------------------------------------------------|
-| --force            | Overrides the default certificate renewal threshhold check (default 30 days)                     |
-| --domain [domain]  | Performs ACME renewal functions for a single specified domain. Can be combined with --force<br />Examples:<br />--domain www.foo.com<br />--domain www.bar.com --force      |
-| --init             | Performs validation checks. Optionally use this command after modifying the global configuration data group<br />- Checks for certificate association to a client SSL profile<br />- Checks for client SSL profile association to an HTTPS virtual server<br />- Checks for HTTP VIP listening on same HTTPS virtual server IP<br />- Creates HTTP VIP if HTTPS VIP exists<br />- Registers any newly-defined ACME providers |                                                                
-| --listaccounts     | Lists the registered ACME provider accounts                                                      |
-| --schedule [cron]  | Takes a cron string and installs this utility as a cron-scheduled process                        |
-| --uninstall        | Deletes the cron scheduling                                                                      |
-| --help             | Shows the help information for above command options                                             |
+| **Command Line Arguments**    | **Description**                                                                                  |
+|-------------------------------|--------------------------------------------------------------------------------------------------|
+| --force                       | Overrides the default certificate renewal threshhold check (default 30 days)                     |
+| --domain [domain]             | Performs ACME renewal functions for a single specified domain. Can be combined with --force<br />Examples:<br />--domain www.foo.com<br />--domain www.bar.com --force      |
+| --init                        | Performs validation checks. Optionally use this command after modifying the global configuration data group<br />- Checks for certificate association to a client SSL profile<br />- Checks for client SSL profile association to an HTTPS virtual server<br />- Checks for HTTP VIP listening on same HTTPS virtual server IP<br />- Creates HTTP VIP if HTTPS VIP exists<br />- Registers any newly-defined ACME providers |                                                                
+| --listaccounts                | Lists the registered ACME provider accounts                                                      |
+| --schedule [cron]             | Takes a cron string and installs this utility as a cron-scheduled process                        |
+| --testrevocation [domain]     | Attempt to performs an OCSP revocation check on an existing certificate (domain)
+| --uninstall                   | Deletes the cron scheduling                                                                      |
+| --help                        | Shows the help information for above command options                                             |
 </details>
 
 <details>
@@ -248,13 +252,41 @@ In development...
 
 <details>
 <summary><b>OCSP and Periodic Revocation Testing</b></summary>
-In development...
+
+<br />
+
+As a function of the utility, OCSP revocation status can be tested on existing certificates. This is set with the **CHECK_REVOCATION** value in the client config file, by default disabled (false). When enabled, and the certificate exists on the BIG-IP, the PEM certificate, issuer, and OCSP URI values are collected and a direct OCSP check is performed. If the certificate is revoked, a new certificate and private key are requested (vs. generating a CSR on the existing private key).
+
+It is also possible to perform a direct check of revocation with the **--testrevocation** command line argument, followed by the certificate name (domain) as specified on the BIG-IP.
+
+```
+cd /shared/acme
+./f5acmehandler.sh --testrevocation foo.f5labs.com
+```
+
+This will return one of the following possible values:
+
+| **Value**   | **Description**                                                                                                                                  |
+|-------------|--------------------------------------------------------------------------------------------------------------------------------------------------|
+| revoked     | The OCSP check was successful and the response was revoked                                                                                       |
+| notrevoked  | The OCSP check was successful and the response was not revoked                                                                                   |
+| unavailable | The OCSP check was not performed, in the case that the utility is unable to collect a chain (issuer) and OCSP URI value from the certificate     |
+
+<br />
+
 </details>
 
 <details>
 <summary><b>Working with BIG-IQ</b></summary>
 In development...
 </details>
+
+<br />
+
+
+------------
+### ${\textbf{\color{blue}Troubleshooting}}$
+In development...
 
 <br />
 
