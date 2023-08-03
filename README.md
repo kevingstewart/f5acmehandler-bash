@@ -8,7 +8,7 @@ This utility defines a wrapper for the Bash-based [Dehydrated](https://github.co
 
 * Simple installation, configuration, and scheduling
 * Supports renewal with existing private keys to enable certificate automation in HSM/FIPS environments
-* Supports per-domain configurations, and multiple ACME services
+* Supports per-domain configurations, and multiple ACME providers
 * Supports External Account Binding (EAB)
 * Supports OCSP and periodic revocation testing
 * Supports explicit proxy egress
