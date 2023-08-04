@@ -43,13 +43,6 @@ Configuration Options** section below for additional details. Examples:
 
 * ${\large{\textbf{\color{red}Step\ 4}}}$ (HTTP VIPs): Minimally ensure that an HTTP virtual server exists on the BIG-IP that matches the DNS resolution of each target domain (certificate subject). Attach the ```acme_handler_rule``` iRule to each HTTP virtual server.
 
-* ${\large{\textbf{\color{red}Step\ 5}}}$ (Initialize): Optionally run the following command in ```/shared/acme``` whenever the data group is updated. This command will check the validity of the configuration data group, and register any providers not already registered. See the **Utility Command Line Options** section below for additional details.
-
-    ```bash
-    cd /shared/acme
-    ./f5acmehandler.sh --init
-    ```
-
 * ${\large{\textbf{\color{red}Step\ 6}}}$ (Fetch):  Initiate an ACME fetch. This command will loop through the ```acme_config_dg``` data group and perform required ACME certificate renewal operations for each configured domain. By default, if no certificate and key exists, ACME renewal will generate a new certificate and key. If a private key exists, a CSR is generated from the existing key to renew the certificate only. This it to support HSM/FIPS environments, but can be disabled. See the **Utility Command Line Options** and **ACME Client Configuration Options** sections below for additional details.
 
     ```bash
@@ -136,7 +129,6 @@ The ```f5acmehandler.sh``` utility script also supports a set of commandline opt
 |-------------------------------|--------------------------------------------------------------------------------------------------|
 | --force                       | Overrides the default certificate renewal threshhold check (default 30 days)                     |
 | --domain [domain]             | Performs ACME renewal functions for a single specified domain. Can be combined with --force<br />Examples:<br />--domain www.foo.com<br />--domain www.bar.com --force      |
-| --init                        | Performs validation checks. Optionally use this command after modifying the global configuration data group<br />- Checks for certificate association to a client SSL profile<br />- Checks for client SSL profile association to an HTTPS virtual server<br />- Checks for HTTP VIP listening on same HTTPS virtual server IP<br />- Creates HTTP VIP if HTTPS VIP exists<br />- Registers any newly-defined ACME providers |                                                                
 | --listaccounts                | Lists the registered ACME provider accounts                                                      |
 | --schedule [cron]             | Takes a cron string and installs this utility as a cron-scheduled process                        |
 | --testrevocation [domain]     | Attempt to performs an OCSP revocation check on an existing certificate (domain)
@@ -315,12 +307,6 @@ There are a number of ways to test the ```f5acmehandler``` utility, including va
     ```lua
     www.foo.com := --ca https://<acme-server-ip>:9000/acme/acme/directory
     www.bar.com := --ca https://<acme-server-ip>:9000/acme/acme/directory -a rsa
-    ```
-  
-* On the BIG-IP. trigger the f5acmehandler ```--init``` function to validate the config data group and register the client to this provider.
-
-    ```bash
-    ./f5acmehandler.sh --init
     ```
     
 * To view DEBUG logs for the f5acmehandler processing, ensure that the ```DEBUGLOG``` entry in the config file is set to true. Then in a separate SSH window to the BIG-IP, tail the ```acmehandler``` log file:
