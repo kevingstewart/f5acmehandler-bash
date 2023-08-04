@@ -18,6 +18,7 @@ REGISTER_OPTIONS="--register --accept-terms"
 LOGFILE=/var/log/acmehandler
 FORCERENEW="no"
 SINGLEDOMAIN=""
+VERBOSE="no"
 
 
 ## Function: process_errors --> print error and debug logs to the log file
@@ -27,6 +28,7 @@ process_errors () {
    if [[ "$ERR" =~ ^"ERROR" && "$ERRORLOG" == "true" ]]; then echo -e ">> [${timestamp}]  ${ERR}" >> ${LOGFILE}; fi
    if [[ "$ERR" =~ ^"DEBUG" && "$DEBUGLOG" == "true" ]]; then echo -e ">> [${timestamp}]  ${ERR}" >> ${LOGFILE}; fi
    if [[ "$ERR" =~ ^"PANIC" ]]; then echo -e ">> [${timestamp}]  ${ERR}" >> ${LOGFILE}; fi
+   if [[ "$VERBOSE" == "yes" ]]; then echo -e ">> [${timestamp}]  ${ERR}"; fi
 }
 
 
@@ -84,13 +86,6 @@ generate_new_cert_key() {
    do=$(eval $cmd 2>&1 | cat | sed 's/^/    /')
    process_errors "DEBUG (handler: ACME client output):\n$do\n"
 
-   ## Catch registration errors
-   if [[ $do =~ "To use dehydrated with this certificate authority you have to agree to their terms of service which you can find here:" ]]
-   then
-      process_errors "PANIC: Registration for (${DOMAIN}) has not been completed. Please use './f5acmehandler.sh --init' to initialize all ACME providers.\n\n"
-      continue
-   fi
-
    ## Catch connectivity errors
    if [[ $do =~ "ERROR: Problem connecting to server" ]]
    then
@@ -129,13 +124,6 @@ generate_cert_from_csr() {
    process_errors "DEBUG (handler: ACME client command):\n   $cmd\n"
    do=$(eval $cmd 2>&1 | cat | sed 's/^/    /')
    process_errors "DEBUG (handler: ACME client output):\n$do\n"
-
-   ## Catch registration errors
-   if [[ $do =~ "To use dehydrated with this certificate authority you have to agree to their terms of service which you can find here:" ]]
-   then
-      process_errors "PANIC: Registration for (${DOMAIN}) has not been completed. Please use './f5acmehandler.sh --init' to initialize all ACME providers.\n\n"
-      continue
-   fi
 
    ## Catch connectivity errors
    if [[ $do =~ "ERROR: Problem connecting to server" ]]
@@ -186,10 +174,47 @@ process_handler_config () {
       ## Break out of function if SINGLEDOMAIN is specified and this pass is not for the matching domain
       continue
    else
-      process_errors "DEBUG (handler function: process_handler_config)\n   --domain argument specified for ($DOMAIN)\n"
+      process_errors "DEBUG (handler function: process_handler_config)\n   --domain argument specified for ($DOMAIN).\n"
    fi
 
-   process_errors "DEBUG ==================================================\n>> DEBUG (handler function: process_handler_config)\n>> DEBUG ==================================================\n   VAR: DOMAIN=${DOMAIN}\n   VAR: COMMAND=${COMMAND}\n"
+
+   ######################
+   ### VALIDATION CHECKS
+   ######################
+
+   ## Validation check --> Defined DOMAIN should be syntactically correct
+   dom_regex='^([a-zA-Z0-9](([a-zA-Z0-9-]){0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$'
+   if [[ ! "$DOMAIN" =~ $dom_regex ]]
+   then
+      process_errors "PANIC: Configuration entry ($DOMAIN) is incorrect. Skipping.\n"
+      continue 
+   fi
+
+   ## Validation check: Config entry must include "--ca" option
+   if [[ ! "$COMMAND" =~ "--ca " ]]
+   then
+      process_errors "PANIC: Configuration entry for ($DOMAIN) must include a \"--ca\" option. Skipping.\n"
+      continue 
+   fi
+
+   ## Validation check: Defined provider should be registered
+   if [[ "$(process_check_registered $COMMAND)" == "notfound" ]]
+   then
+      process_errors "DEBUG: Defined ACME provider not registered. Registering.\n"
+
+      ## Extract --ca and --config values
+      COMMAND_CA=$(echo "$COMMAND" | sed -E 's/.*(--ca+\s[^[:space:]]+).*/\1/g;s/"//g')
+      if [[ "$COMMAND" =~ "--config " ]]; then COMMAND_CONFIG=$(echo "$COMMAND" | sed -E 's/.*(--config+\s[^[:space:]]+).*/\1/g;s/"//g'); else COMMAND_CONFIG=""; fi
+      
+      ## Handling registration
+      cmd="${ACMEDIR}/dehydrated --register --accept-terms ${COMMAND_CA} ${COMMAND_CONFIG}"
+      do=$(eval $cmd 2>&1 | cat | sed 's/^/   /')
+      process_errors "DEBUG (handler: ACME provider registration):\n$do\n"
+   fi
+
+
+   ## Start logging
+   process_errors "DEBUG (handler function: process_handler_config)\n   VAR: DOMAIN=${DOMAIN}\n   VAR: COMMAND=${COMMAND}\n"
 
    ## Error test: check if cert exists in BIG-IP config
    certexists=true && [[ "$(tmsh list sys crypto cert ${DOMAIN} 2>&1)" == "" ]] && certexists=false
@@ -235,175 +260,15 @@ process_handler_config () {
 }
 
 
-## Function: process_handler_init --> utility function to:
-## -- Check for configuration data group errors
-## -- Check cert/profile/VIP structure
-##    - Test if client SSL profile exists for certificate --> fail/report if false
-##    - Test if HTTPS VIP does not exist for SSL profile --> fail/report if true (missing)
-##    - Test if HTTP VIP does not exist (that matches HTTPS IP) --> create and add iRule if true (missing), add iRule if false (present)
-## -- Register new domains (if not already registered)
-process_handler_init() {
-   init_report="\nInit Report:\n"
-   
-   ## Create list of existing client SSL profiles and attached certificates (profile=cert)
-   certlist=$(tmsh -q list ltm profile client-ssl recursive one-line | sed -E 's/ltm profile client-ssl ([^[:space:]]+)\s.+\scert\s([^[:space:]]+)\s.*/\1=\2/g')
-   
-   ## Read from the config data group and loop through entries
-   config=true && [[ "$(tmsh list ltm data-group internal dg_acme_handler_config 2>&1)" =~ "was not found" ]] && config=false
-   if ($config)
+## Function: process_check_registered --> tests for local registration
+process_check_registered() {
+   local INCOMMAND="${1}"
+   account=$(echo "$INCOMMAND" | sed -E 's/.*(--ca+\s[^[:space:]]+).*/\1/g;s/"//g;s/--ca //g' | base64 | sed -E 's/=//g')
+   if [[ -d "${ACMEDIR}/accounts/${account}" ]]
    then
-      ## Loop through data group config (domain=value)
-      IFS=";" && for v in $(tmsh list ltm data-group internal dg_acme_handler_config one-line | sed -e 's/ltm data-group internal dg_acme_handler_config { records { //;s/ \} type string \}//;s/ { data /=/g;s/ \} /;/g;s/ \}//')
-      do
-         ## Extract domain and command values
-         IFS="=" read -r DOMAIN COMMAND <<< $v
-         init_report="${init_report}  \n-- ${DOMAIN}:\n"
-
-
-         #####################
-         ## INIT process: Check for configuration data group errors
-         #####################
-         ## Regex validate domain entry
-         dom_regex='^([a-zA-Z0-9](([a-zA-Z0-9-]){0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$'
-         if [[ ! "$DOMAIN" =~ $dom_regex ]]
-         then
-            init_report="${init_report}\tERROR: Configuration entry ($DOMAIN) is incorrect\n"
-            continue 
-         fi
-
-         ## Config entry must include "--ca" option
-         if [[ ! "$COMMAND" =~ "--ca " ]]
-         then
-            init_report="${init_report}\tERROR: Configuration entry for ($DOMAIN) must include a \"--ca\" option\n"
-            continue 
-         fi
-
-
-         #####################
-         ## INIT process: Check cert/profile/VIP structure
-         ## - Test if client SSL profile exists for certificate --> fail/report if false
-         ## - Test if HTTPS VIP does not exist for SSL profile --> fail/report if true (missing)
-         ## - Test if HTTP VIP does not exist (that matches HTTPS IP) --> create and add iRule if true (missing), add iRule if false (present)
-         #####################
-         ## Test if client SSL profile exists for certificate (DOMAIN certificate is attached to any client SSL profile) --> fail/report if false
-         if echo $certlist | grep -q "=${DOMAIN}"
-         then
-            ## True: matching client SSL profile
-            clientssl_profile=$(echo $certlist | grep $DOMAIN | awk -F"=" '{print $1}')
-            
-            ## Test if HTTPS VIP does not exist for SSL profile --> fail/report if true (missing)
-            if ! tmsh -q list ltm virtual recursive one-line | grep -q $clientssl_profile
-            then
-               ## True: matching client SSL profile but no assigned VIP
-               found_profile=$(echo $certlist | grep $DOMAIN | awk -F"=" '{print $1}')
-               # init_report="${init_report}  -- (${DOMAIN}):\tA client SSL profile exists (${found_profile}), but is not attached to any virtual server\n"
-               init_report="${init_report}\tERROR: A client SSL profile exists (${found_profile}), but is not attached to any virtual server\n"
-               # continue
-            else
-               ## False: matching client SSL profile AND assigned VIP
-               found_vip=$(tmsh -q list ltm virtual recursive one-line | grep www.f5labs.com_clientssl | sed -E 's/ltm virtual ([^[:space:]]+)\s.*/\1/g')
-               found_vip_ip=$(tmsh -q list ltm virtual ${found_vip} destination | tr -d '\n' |sed -E 's/.*destination\s([^[:space:]]+):.*/\1/g')
-               
-               ## Test if HTTP VIP does not exist (that matches HTTPS IP) --> create and add iRule if true (missing), add iRule if false (present)
-               if ! tmsh -q list ltm virtual recursive one-line | grep -q "${found_vip_ip}:http "
-               then
-                  ## True: matching :http VIP
-                  # init_report="${init_report}  -- (${DOMAIN}):\tA client SSL profile and HTTPS VIP exist, but no port 80 VIP exists. Creating...\n"
-                  init_report="${init_report}\tA client SSL profile and HTTPS VIP exist, but no port 80 VIP exists. Creating...\n"
-                  
-                  ## Get :https VIP VLANs
-                  found_vip_vlans=$(tmsh -q list ltm virtual ${found_vip} vlans | tr -d '\n' | sed -E 's/.*vlans\s+\{\s+([^}]+)\}\}/\1/g;s/\s+/ /g')
-
-                  ## Create the iRule. Assume it does not exist
-                  tmsh create ltm rule acme_handler_rule when HTTP_REQUEST priority 2 {if { [string tolower [HTTP::uri]] starts_with \"/.well-known/acme-challenge/\" } {set response_content [class lookup [substr [HTTP::uri] 28] dg_acme_handler_service]\;if { \$response_content ne \"\" } { HTTP::respond 200 -version auto content \$response_content noserver Content-Type {text/plain} Content-Length [string length \$response_content] Cache-Control no-store } else { HTTP::respond 503 -version auto content \"\<html\>\<body\>\<h1\>503 - Error\<\/h1\>\<p\>Content not found.\<\/p\>\<\/body\>\<\/html\>\" noserver Content-Type {text/html} Cache-Control no-store }\;unset response_content\;event disable all\;return}}  > /dev/null 2>&1
-
-                  ## Create the HTTP VIP, attach the iRule
-                  cmd="tmsh create ltm virtual \"_acme_handler_${DOMAIN}\" destination ${found_vip_ip}:80 vlans replace-all-with { ${found_vip_vlans} } profiles replace-all-with { http } rules { acme_handler_rule }"
-                  eval $cmd > /dev/null 2>&1
-               else
-                  ## False: :http VIP exists, add iRule. Assume it is not added
-                  # init_report="${init_report}  -- (${DOMAIN}):\tA client SSL profile and HTTPS VIP exist, and port 80 VIP exists. Adding iRule to HTTP VIP...\n"
-                  init_report="${init_report}\tA client SSL profile and HTTPS VIP exist, and port 80 VIP exists. Adding iRule to HTTP VIP...\n"
-                  
-                  ## Get HTTP VIP name
-                  found_vip_http=$(tmsh -q list ltm virtual recursive one-line | grep "${found_vip_ip}:http " | sed -E 's/ltm virtual ([^[:space:]]+)\s.*/\1/g')
-                  
-                  ## Get HTTP VIP existing iRules
-                  found_vip_http_rules=$(tmsh -q list ltm virtual ${found_vip_http} rules | tr -d '\n' | sed -E 's/.*rules\s+\{\s+([^}]+)\}\}/\1/g;s/\s+/ /g')
-                  
-                  ## Create the iRule. Assume it does not exist
-                  tmsh create ltm rule acme_handler_rule when HTTP_REQUEST priority 2 {if { [string tolower [HTTP::uri]] starts_with \"/.well-known/acme-challenge/\" } {set response_content [class lookup [substr [HTTP::uri] 28] dg_acme_handler_service]\;if { \$response_content ne \"\" } { HTTP::respond 200 -version auto content \$response_content noserver Content-Type {text/plain} Content-Length [string length \$response_content] Cache-Control no-store } else { HTTP::respond 503 -version auto content \"\<html\>\<body\>\<h1\>503 - Error\<\/h1\>\<p\>Content not found.\<\/p\>\<\/body\>\<\/html\>\" noserver Content-Type {text/html} Cache-Control no-store }\;unset response_content\;event disable all\;return}}  > /dev/null 2>&1
-
-                  ## Add iRule to VIP
-                  cmd="tmsh modify ltm virtual ${found_vip_http} rules { ${found_vip_http_rules} acme_handler_rule }"
-                  eval $cmd > /dev/null 2>&1
-               fi
-            fi
-         else
-            ## False: no matching client SSL profile - fail/report
-            # init_report="${init_report}  -- (${DOMAIN}):\tNo client SSL profile exists. No additional actions performed.\n"
-            init_report="${init_report}\tERROR: No client SSL profile exists. No additional actions performed.\n"
-            # continue
-         fi
-
-         
-         #####################
-         ## INIT process: Register new domains (if not already registered)
-         #####################
-
-         ## Extract --ca and --config values
-         if [[ "$COMMAND" =~ "--ca " ]]; then COMMAND_CA=$(echo "$COMMAND" | sed -E 's/.*(--ca+\s[^[:space:]]+).*/\1/g;s/"//g'); else COMMAND_CA=""; fi
-         if [[ "$COMMAND" =~ "--config " ]]; then COMMAND_CONFIG=$(echo "$COMMAND" | sed -E 's/.*(--config+\s[^[:space:]]+).*/\1/g;s/"//g'); else COMMAND_CONFIG=""; fi
-
-         ## Test if --config is defined but file doesn't exist
-         if [[ ! -z "$COMMAND_CONFIG" && ! -f "$(echo $COMMAND_CONFIG | sed -E 's/--config //')" ]]
-         then
-            init_report="${init_report}\tPANIC: Defined config file for ($DOMAIN) does not exist: $(echo $COMMAND_CONFIG | sed -E 's/--config //')\n"
-            continue
-         fi
-
-         ## Get base URL from COMMAND_CA
-         BASEURL=$(echo $COMMAND_CA | sed -E 's/.*(https:\/\/[^\/]+).*/\1/g')
-
-         ## Loop through accounts folder and find existing registrations
-         if [[ $(find ${ACMEDIR}/accounts/ -type d | wc -l) -le 1 ]]
-         then
-            ## No existing registrations (accounts folder empty) --> perform registration
-            init_report="${init_report}\tNo existing registered for specified CA. ($COMMAND_CA). Performing registration...\n"
-            cmd="${ACMEDIR}/dehydrated --register --accept-terms ${COMMAND_CA} ${COMMAND_CONFIG}"
-            do=$(eval $cmd 2>&1 | cat | sed 's/^/        /')
-            init_report="${init_report}$do\n"
-         else
-            ## Exiting registrations (accounts for not empty) --> loop through folder and look for a match (existing registration)
-            for acct in ${ACMEDIR}/accounts/*
-            do
-               acct_tmp=$(echo $acct | sed -E 's/\/shared\/acme\/accounts\///')
-               TESTURL=$(process_base64_decode $acct_tmp)
-               found=0
-               if [[ "$TESTURL" =~ "$BASEURL" ]]
-               then
-                  ## Matching registration found --> stop
-                  found=1
-               fi
-            done
-
-            if [[ "$found" == 1 ]]
-            then
-               init_report="${init_report}\tAlready registered for specified CA ($COMMAND_CA).\n"
-            else
-               init_report="${init_report}\tNo existing registered for specified CA ($COMMAND_CA). Performing registration...\n"
-               cmd="${ACMEDIR}/dehydrated --register --accept-terms ${COMMAND_CA} ${COMMAND_CONFIG}"
-               do=$(eval $cmd 2>&1 | cat | sed 's/^/        /')
-               init_report="${init_report}$do\n"
-            fi
-         fi
-      done
-
-      ## Print report to stdout
-      printf "${init_report}\n\n"
+      echo "found"
    else
-      printf "PANIC: There was an error accessing the dg_acme_handler_config data group. Please re-install\n\n"
-      exit 1
+      echo "notfound"
    fi
 }
 
@@ -504,7 +369,7 @@ process_handler_main() {
       then
          IFS=";" && for v in $(tmsh list ltm data-group internal dg_acme_handler_config one-line | sed -e 's/ltm data-group internal dg_acme_handler_config { records { //;s/ \} type string \}//;s/ { data /=/g;s/ \} /;/g;s/ \}//'); do process_handler_config $v; done
       else
-         process_errors "PANIC: There was an error accessing the dg_acme_handler_config data group. Please re-install\n"
+         process_errors "PANIC: There was an error accessing the dg_acme_handler_config data group. Please re-install.\n"
          exit 1
       fi
    fi
@@ -515,22 +380,22 @@ process_handler_main() {
 ## Usage: --help
 command_help() {
   printf "\nUsage: %s [--help]\n"
-  printf "Usage: %s [--init]\n"
   printf "Usage: %s [--force] [--domain <domain>]\n"
   printf "Usage: %s [--listaccounts]\n"
   printf "Usage: %s [--schedule <cron>]\n"
   printf "Usage: %s [--testrevocation <domain>]\n"
-  printf "Usage: %s [--uninstall]\n\n"
+  printf "Usage: %s [--uninstall]\n"
+  printf "Usage: %s [--verbose]\n\n"
   printf "Default (no arguments): renewal operations\n"
   printf -- "\nParameters:\n"
   printf " --help:\t\t\tPrint this help information\n"
-  printf " --init:\t\t\tDetect configuration errors, register new domains, create port 80 VIPs\n"
   printf " --force:\t\t\tForce renewal (override data checks)\n"
   printf " --domain <domain>:\t\tRenew a single domain (ex. --domain www.f5labs.com)\n"
   printf " --listaccounts:\t\tPrint a list of all registered ACME providers\n"
   printf " --schedule <cron>:\t\tInstall/update the scheduler. See REPO for scheduling instructions\n"
   printf " --testrevocation <domain>:\tAttempt to performs an OCSP revocation check on an existing certificate (domain)\n"
-  printf " --uninstall:\t\t\tUninstall the scheduler\n\n\n"
+  printf " --uninstall:\t\t\tUninstall the scheduler\n"
+  printf " --verbose:\t\t\tDump verbose output to stdout\n\n\n"
 }
 
 
@@ -540,11 +405,6 @@ main() {
       case "${1}" in
          --help)
            command_help >&2
-           exit 0
-           ;;
-
-         --init)
-           process_handler_init
            exit 0
            ;;
 
@@ -584,6 +444,10 @@ main() {
 
          --force)
            FORCERENEW="yes"
+           ;;
+
+         --verbose)
+           VERBOSE="yes"
            ;;
 
          --domain)
