@@ -249,11 +249,11 @@ process_handler_init() {
    certlist=$(tmsh -q list ltm profile client-ssl recursive one-line | sed -E 's/ltm profile client-ssl ([^[:space:]]+)\s.+\scert\s([^[:space:]]+)\s.*/\1=\2/g')
    
    ## Read from the config data group and loop through entries
-   config=true && [[ "$(tmsh list ltm data-group internal acme_config_dg 2>&1)" =~ "was not found" ]] && config=false
+   config=true && [[ "$(tmsh list ltm data-group internal dg_acme_handler_config 2>&1)" =~ "was not found" ]] && config=false
    if ($config)
    then
       ## Loop through data group config (domain=value)
-      IFS=";" && for v in $(tmsh list ltm data-group internal acme_config_dg one-line | sed -e 's/ltm data-group internal acme_config_dg { records { //;s/ \} type string \}//;s/ { data /=/g;s/ \} /;/g;s/ \}//')
+      IFS=";" && for v in $(tmsh list ltm data-group internal dg_acme_handler_config one-line | sed -e 's/ltm data-group internal dg_acme_handler_config { records { //;s/ \} type string \}//;s/ { data /=/g;s/ \} /;/g;s/ \}//')
       do
          ## Extract domain and command values
          IFS="=" read -r DOMAIN COMMAND <<< $v
@@ -315,7 +315,7 @@ process_handler_init() {
                   found_vip_vlans=$(tmsh -q list ltm virtual ${found_vip} vlans | tr -d '\n' | sed -E 's/.*vlans\s+\{\s+([^}]+)\}\}/\1/g;s/\s+/ /g')
 
                   ## Create the iRule. Assume it does not exist
-                  tmsh create ltm rule acme_handler_rule when HTTP_REQUEST priority 2 {if { [string tolower [HTTP::uri]] starts_with \"/.well-known/acme-challenge/\" } {set response_content [class lookup [substr [HTTP::uri] 28] acme_handler_dg]\;if { \$response_content ne \"\" } { HTTP::respond 200 -version auto content \$response_content noserver Content-Type {text/plain} Content-Length [string length \$response_content] Cache-Control no-store } else { HTTP::respond 503 -version auto content \"\<html\>\<body\>\<h1\>503 - Error\<\/h1\>\<p\>Content not found.\<\/p\>\<\/body\>\<\/html\>\" noserver Content-Type {text/html} Cache-Control no-store }\;unset response_content\;event disable all\;return}}  > /dev/null 2>&1
+                  tmsh create ltm rule acme_handler_rule when HTTP_REQUEST priority 2 {if { [string tolower [HTTP::uri]] starts_with \"/.well-known/acme-challenge/\" } {set response_content [class lookup [substr [HTTP::uri] 28] dg_acme_handler_service]\;if { \$response_content ne \"\" } { HTTP::respond 200 -version auto content \$response_content noserver Content-Type {text/plain} Content-Length [string length \$response_content] Cache-Control no-store } else { HTTP::respond 503 -version auto content \"\<html\>\<body\>\<h1\>503 - Error\<\/h1\>\<p\>Content not found.\<\/p\>\<\/body\>\<\/html\>\" noserver Content-Type {text/html} Cache-Control no-store }\;unset response_content\;event disable all\;return}}  > /dev/null 2>&1
 
                   ## Create the HTTP VIP, attach the iRule
                   cmd="tmsh create ltm virtual \"_acme_handler_${DOMAIN}\" destination ${found_vip_ip}:80 vlans replace-all-with { ${found_vip_vlans} } profiles replace-all-with { http } rules { acme_handler_rule }"
@@ -332,7 +332,7 @@ process_handler_init() {
                   found_vip_http_rules=$(tmsh -q list ltm virtual ${found_vip_http} rules | tr -d '\n' | sed -E 's/.*rules\s+\{\s+([^}]+)\}\}/\1/g;s/\s+/ /g')
                   
                   ## Create the iRule. Assume it does not exist
-                  tmsh create ltm rule acme_handler_rule when HTTP_REQUEST priority 2 {if { [string tolower [HTTP::uri]] starts_with \"/.well-known/acme-challenge/\" } {set response_content [class lookup [substr [HTTP::uri] 28] acme_handler_dg]\;if { \$response_content ne \"\" } { HTTP::respond 200 -version auto content \$response_content noserver Content-Type {text/plain} Content-Length [string length \$response_content] Cache-Control no-store } else { HTTP::respond 503 -version auto content \"\<html\>\<body\>\<h1\>503 - Error\<\/h1\>\<p\>Content not found.\<\/p\>\<\/body\>\<\/html\>\" noserver Content-Type {text/html} Cache-Control no-store }\;unset response_content\;event disable all\;return}}  > /dev/null 2>&1
+                  tmsh create ltm rule acme_handler_rule when HTTP_REQUEST priority 2 {if { [string tolower [HTTP::uri]] starts_with \"/.well-known/acme-challenge/\" } {set response_content [class lookup [substr [HTTP::uri] 28] dg_acme_handler_service]\;if { \$response_content ne \"\" } { HTTP::respond 200 -version auto content \$response_content noserver Content-Type {text/plain} Content-Length [string length \$response_content] Cache-Control no-store } else { HTTP::respond 503 -version auto content \"\<html\>\<body\>\<h1\>503 - Error\<\/h1\>\<p\>Content not found.\<\/p\>\<\/body\>\<\/html\>\" noserver Content-Type {text/html} Cache-Control no-store }\;unset response_content\;event disable all\;return}}  > /dev/null 2>&1
 
                   ## Add iRule to VIP
                   cmd="tmsh modify ltm virtual ${found_vip_http} rules { ${found_vip_http_rules} acme_handler_rule }"
@@ -402,7 +402,7 @@ process_handler_init() {
       ## Print report to stdout
       printf "${init_report}\n\n"
    else
-      printf "PANIC: There was an error accessing the acme_config_dg data group. Please re-install\n\n"
+      printf "PANIC: There was an error accessing the dg_acme_handler_config data group. Please re-install\n\n"
       exit 1
    fi
 }
@@ -499,12 +499,12 @@ process_handler_main() {
       mkdir /tmp/wellknown > /dev/null 2>&1
       
       ## Read from the config data group and loop through keys:values
-      config=true && [[ "$(tmsh list ltm data-group internal acme_config_dg 2>&1)" =~ "was not found" ]] && config=false
+      config=true && [[ "$(tmsh list ltm data-group internal dg_acme_handler_config 2>&1)" =~ "was not found" ]] && config=false
       if ($config)
       then
-         IFS=";" && for v in $(tmsh list ltm data-group internal acme_config_dg one-line | sed -e 's/ltm data-group internal acme_config_dg { records { //;s/ \} type string \}//;s/ { data /=/g;s/ \} /;/g;s/ \}//'); do process_handler_config $v; done
+         IFS=";" && for v in $(tmsh list ltm data-group internal dg_acme_handler_config one-line | sed -e 's/ltm data-group internal dg_acme_handler_config { records { //;s/ \} type string \}//;s/ { data /=/g;s/ \} /;/g;s/ \}//'); do process_handler_config $v; done
       else
-         process_errors "PANIC: There was an error accessing the acme_config_dg data group. Please re-install\n"
+         process_errors "PANIC: There was an error accessing the dg_acme_handler_config data group. Please re-install\n"
          exit 1
       fi
    fi
