@@ -110,8 +110,12 @@ generate_cert_from_csr() {
       certsan="DNS:${DOMAIN}"
    fi
 
-   ## Commencing acme renewal process - first delete and recreate a csr for domain
-   tmsh delete sys crypto csr ${DOMAIN} > /dev/null 2>&1
+   ## Commencing acme renewal process - first delete and recreate a csr for domain (check first to prevent ltm error log message if CSR doesn't exist)
+   csrexists=false && [[ "$(tmsh list sys crypto csr ${DOMAIN} 2>&1)" =~ "${DOMAIN}" ]] && csrexists=true
+   if ($csrexists)
+   then
+      tmsh delete sys crypto csr ${DOMAIN} > /dev/null 2>&1
+   fi
    tmsh create sys crypto csr ${DOMAIN} common-name ${DOMAIN} subject-alternative-name "${certsan}" key ${DOMAIN}
    
    ## Dump csr to cert.csr in DOMAIN subfolder
