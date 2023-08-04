@@ -264,12 +264,12 @@ This will return one of the following possible values:
 </details>
 
 <details>
-<summary><b>Reporting</b></summary>
+<summary><b>Working with BIG-IQ</b></summary>
 In development...
 </details>
 
 <details>
-<summary><b>Working with BIG-IQ</b></summary>
+<summary><b>Reporting</b></summary>
 In development...
 </details>
 
