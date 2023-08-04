@@ -133,6 +133,7 @@ The ```f5acmehandler.sh``` utility script also supports a set of commandline opt
 | --schedule [cron]             | Takes a cron string and installs this utility as a cron-scheduled process                        |
 | --testrevocation [domain]     | Attempt to performs an OCSP revocation check on an existing certificate (domain)
 | --uninstall                   | Deletes the cron scheduling                                                                      |
+| --verbose                     | Dump verbose output to stdout                                                                    |
 | --help                        | Shows the help information for above command options                                             |
 </details>
 
@@ -319,10 +320,10 @@ There are a number of ways to test the ```f5acmehandler``` utility, including va
     tail -f /var/log/acmehandler
     ```
 
-* Trigger an initial ACME certificate fetch. This will loop through the ```dg_acme_handler_config``` data group and process ACME certificate renewal for each domain. In this case, it will create both the certificate and private key and install these to the BIG-IP. You can then use these in client SSL profiles that get attached to HTTPS virtual servers. In the BIG-IP, under **System - Certificate Management - Traffic Certificate Management - SSL Certificate List**, observe the installed certificate(s) and key(s).
+* Trigger an initial ACME certificate fetch. This will loop through the ```dg_acme_handler_config``` data group and process ACME certificate renewal for each domain. In this case, it will create both the certificate and private key and install these to the BIG-IP. You can then use these in client SSL profiles that get attached to HTTPS virtual servers. In the BIG-IP, under **System - Certificate Management - Traffic Certificate Management - SSL Certificate List**, observe the installed certificate(s) and key(s). To see verbose output, add the ```--verbose``` command line argument.
 
     ```bash
-    ./f5acmehandler.sh
+    ./f5acmehandler.sh --verbose
     ```
 
 * Trigger a subsequent ACME certificate fetch, specifying a single domain and forcing renewal. Before launching the following command, open the properties of one of the certificates in the BIG-IP UI. After the command completes, refresh the certificate properties and observe the updated Serial Number and Fingerprint values.
