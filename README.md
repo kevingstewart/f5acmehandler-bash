@@ -238,11 +238,6 @@ EAB_HMAC_KEY=zWNDZM6eQGHWpSRTPal5eIUYFTu7EajVIoguysqZ9wG44nMEtx3MUAsUDkMTQ12W
 </details>
 
 <details>
-<summary><b>Reporting</b></summary>
-In development...
-</details>
-
-<details>
 <summary><b>OCSP and Periodic Revocation Testing</b></summary>
 
 <br />
@@ -266,6 +261,11 @@ This will return one of the following possible values:
 
 <br />
 
+</details>
+
+<details>
+<summary><b>Reporting</b></summary>
+In development...
 </details>
 
 <details>
