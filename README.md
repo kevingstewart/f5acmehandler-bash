@@ -205,8 +205,12 @@ On ```f5acmehandler.sh``` script initiation, the ```dg_acme_handler_config``` da
 
 <br />
 
-
 </details>
+
+<details>
+<summary><b>ACME Utility Architecture</b></summary>
+In development...
+</details>details>
 
 <details>
 <summary><b>ACME Protocol Flow Reference</b></summary>
