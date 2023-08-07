@@ -40,12 +40,12 @@ startup_hook() {
 }
 
 
-## Function: deploy_challenge --> called by ACME client to insert token into dg_acme_handler_service data group for ACME server http-01 challenge
+## Function: deploy_challenge --> called by ACME client to insert token into dg_acme_challenge data group for ACME server http-01 challenge
 deploy_challenge() {
     ## Add a record to the data group
     local DOMAIN="${1}" TOKEN_FILENAME="${2}" TOKEN_VALUE="${3}"
     process_errors "DEBUG (hook function: deploy_challenge)\n   DOMAIN=${DOMAIN}\n   TOKEN_FILENAME=${TOKEN_FILENAME}\n   TOKEN_VALUE=${TOKEN_VALUE}\n"
-    tmsh modify ltm data-group internal dg_acme_handler_service records add { \"${TOKEN_FILENAME}\" { data \"${TOKEN_VALUE}\" } }
+    tmsh modify ltm data-group internal dg_acme_challenge records add { \"${TOKEN_FILENAME}\" { data \"${TOKEN_VALUE}\" } }
 }
 
 
@@ -54,7 +54,7 @@ clean_challenge() {
     ## Delete the record from the data group
     local DOMAIN="${1}" TOKEN_FILENAME="${2}" TOKEN_VALUE="${3}"
     process_errors "DEBUG (hook function: clean_challenge)\n   DOMAIN=${DOMAIN}\n   TOKEN_FILENAME=${TOKEN_FILENAME}\n   TOKEN_VALUE=${TOKEN_VALUE}\n"
-    tmsh modify ltm data-group internal dg_acme_handler_service records delete { \"${TOKEN_FILENAME}\" }
+    tmsh modify ltm data-group internal dg_acme_challenge records delete { \"${TOKEN_FILENAME}\" }
 }
 
 
