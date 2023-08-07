@@ -176,6 +176,33 @@ where:
 Provided below are detailed descriptions of the control flows. The **ACME Functional Flow on BIG-IP** section describes the interaction of ```f5acmehandler``` and ACME client processes. The **ACME Protocol Flow Reference** details the general ACMEv2 protocol flow per [RFC8555](https://datatracker.ietf.org/doc/html/rfc8555).
 
 <details>
+<summary><b>ACME Utility Architecture</b></summary>
+
+The f5acmehandler utility contains the following files and folders in the ```/shared/acme/``` folder on the BIG-IP:
+
+| **File/Folder**  | **Description**                                                                                                                |
+|------------------|--------------------------------------------------------------------------------------------------------------------------------|
+| accounts/        | The Folder containing registration information (subfolders) for each ACME provider.                                            |
+| certs/           | The Folder for ephemeral certificate information (CSRs, certificates), cleared after each ACME renewal operation.              |
+| config           | A text file containing the client configuration. Multiple provider-specific config files may be created as needed.             |
+| dehydrated       | The ACME client script.                                                                                                        |
+| f5acmehandler.sh | The ACME client wrapper utility script. This is the script that gets scheduled, and handles all renewal processing.            |
+| f5hook.sh        | The ACME client hook script. This script is called by the ACME client to handle deploy challenge and clean challenge actions.  |
+
+The ```install.sh``` script is called from a Bash shell on the BIG-IP to:
+
+* Download all of the above files to the ```/shared/acme/``` folder on the BIG-IP
+* Download the ```dehydrated``` ACME client from its separate repository
+* Create ```the dg_acme_config``` and ```dg_acme_challenge``` data groups on the BIG-IP
+* Create the ```acme_handler_rule``` iRule on the BIG-IP
+* Create the ```/var/log/acmehandler``` log file on the BIG-IP
+
+
+<br />
+
+</details>
+
+<details>
 <summary><b>ACME Functional Flow on BIG-IP</b></summary>
 
 The fundamental functional flow is illustrated here. 
@@ -206,11 +233,6 @@ On ```f5acmehandler.sh``` script initiation, the ```dg_acme_config``` data group
 
 <br />
 
-</details>
-
-<details>
-<summary><b>ACME Utility Architecture</b></summary>
-In development...
 </details>
 
 <details>
