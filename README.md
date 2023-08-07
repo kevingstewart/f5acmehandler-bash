@@ -30,7 +30,7 @@ Installation to the BIG-IP is simple. The only constraint is that the certificat
     curl -s https://raw.githubusercontent.com/kevingstewart/f5acmehandler-bash/main/install.sh | bash
     ```
 
-* ${\large{\textbf{\color{red}Step\ 2}}}$ (Global Config): Update the new ```dg_acme_handler_config``` data group and add entries for each managed domain (certificate subject). See the **Global 
+* ${\large{\textbf{\color{red}Step\ 2}}}$ (Global Config): Update the new ```dg_acme_config``` data group and add entries for each managed domain (certificate subject). See the **Global 
 Configuration Options** section below for additional details. Examples:
 
     ```lua
@@ -43,7 +43,7 @@ Configuration Options** section below for additional details. Examples:
 
 * ${\large{\textbf{\color{red}Step\ 4}}}$ (HTTP VIPs): Minimally ensure that an HTTP virtual server exists on the BIG-IP that matches the DNS resolution of each target domain (certificate subject). Attach the ```acme_handler_rule``` iRule to each HTTP virtual server.
 
-* ${\large{\textbf{\color{red}Step\ 5}}}$ (Fetch):  Initiate an ACME fetch. This command will loop through the ```dg_acme_handler_config``` data group and perform required ACME certificate renewal operations for each configured domain. By default, if no certificate and key exists, ACME renewal will generate a new certificate and key. If a private key exists, a CSR is generated from the existing key to renew the certificate only. This it to support HSM/FIPS environments, but can be disabled. See the **Utility Command Line Options** and **ACME Client Configuration Options** sections below for additional details.
+* ${\large{\textbf{\color{red}Step\ 5}}}$ (Fetch):  Initiate an ACME fetch. This command will loop through the ```dg_acme_config``` data group and perform required ACME certificate renewal operations for each configured domain. By default, if no certificate and key exists, ACME renewal will generate a new certificate and key. If a private key exists, a CSR is generated from the existing key to renew the certificate only. This it to support HSM/FIPS environments, but can be disabled. See the **Utility Command Line Options** and **ACME Client Configuration Options** sections below for additional details.
 
     ```bash
     cd /shared/acme
@@ -64,11 +64,11 @@ Configuration Options** section below for additional details. Examples:
 Configuration options for this utility are found in the following locations:
 
 <details>
-<summary><b>Global Configuration Options</b> define the set of domains that are to be handled, the designated ACME provider, and optional unique local configuration settings. This list is maintained in a BIG-IP data group (dg_acme_handler_config)</summary>
+<summary><b>Global Configuration Options</b> define the set of domains that are to be handled, the designated ACME provider, and optional unique local configuration settings. This list is maintained in a BIG-IP data group (dg_acme_config)</summary>
 
 <br />
 
-Global configuration options are specified in the ```dg_acme_handler_config``` data group for each domain (certificate subject). Each entry in the data group must include a **String**: the domain name (ex. www.foo.com), and a **Value** consisting of a number of configuration options:
+Global configuration options are specified in the ```dg_acme_config``` data group for each domain (certificate subject). Each entry in the data group must include a **String**: the domain name (ex. www.foo.com), and a **Value** consisting of a number of configuration options:
 
 <br />
 
@@ -123,7 +123,7 @@ Within the ```/shared/acme/config``` file are a number of additional client attr
 
 <br />
 
-The ```f5acmehandler.sh``` utility script also supports a set of commandline options for general maintenance usage. When no command options are specified, the utility loops through the ```dg_acme_handler_config``` data group and performs required ACME certificate renewal operations for each configured domain.
+The ```f5acmehandler.sh``` utility script also supports a set of commandline options for general maintenance usage. When no command options are specified, the utility loops through the ```dg_acme_config``` data group and performs required ACME certificate renewal operations for each configured domain.
 
 | **Command Line Arguments**    | **Description**                                                                                  |
 |-------------------------------|--------------------------------------------------------------------------------------------------|
@@ -182,11 +182,11 @@ The fundamental functional flow is illustrated here.
 
 ![ACME Functional Flow on BIG-IP](images/control-flow-diagram-f5acmehandler.png)
 
-On ```f5acmehandler.sh``` script initiation, the ```dg_acme_handler_config``` data group is read, and for each domain entry the following logic is applied:
+On ```f5acmehandler.sh``` script initiation, the ```dg_acme_config``` data group is read, and for each domain entry the following logic is applied:
 
 * **Certificate does not exist**: If the domain (certificate) does not exist on the BIG-IP, the ACME client is triggered directly with corresponding configuration settings. During ACME client processing, a separate ```hook``` script is called to perform the following actions:
 
-  - **deploy_challenge**: Take the token filename and token value passed to the client from the ACME server, and insert those as ephemeral entries in an ```dg_acme_handler_service``` data group. The ACME server will issue an http-01 challenge to a corresponding HTTP virtual server on the BIG-IP. An iRule on the VIP reads from the data group and responds to the ACME challenge with the correct token.
+  - **deploy_challenge**: Take the token filename and token value passed to the client from the ACME server, and insert those as ephemeral entries in an ```dg_acme_challenge``` data group. The ACME server will issue an http-01 challenge to a corresponding HTTP virtual server on the BIG-IP. An iRule on the VIP reads from the data group and responds to the ACME challenge with the correct token.
 
   - **clean_challenge**: Once the ACME server has completed its http-01 challenge, the ephemeral entry is removed from the data group.
 
@@ -307,7 +307,7 @@ There are a number of ways to test the ```f5acmehandler``` utility, including va
 
 * On the BIG-IP, for each of the above /etc/hosts entries, ensure that a matching HTTP virtual server exists on the BIG-IP. Define the destination IP (same as /etc/hosts entry), port 80, a generic ```http``` profile, the proper listening VLAN, and attach the ```acme_handler_rule``` iRule.
 
-* On the BIG-IP, update the ```dg_acme_handler_config``` data group and add an entry for each domain (certificate). This should match each ```/etc/hosts``` domain entry specified in the docker-compose file.
+* On the BIG-IP, update the ```dg_acme_config``` data group and add an entry for each domain (certificate). This should match each ```/etc/hosts``` domain entry specified in the docker-compose file.
 
     ```lua
     www.foo.com := --ca https://<acme-server-ip>:9000/acme/acme/directory
@@ -320,7 +320,7 @@ There are a number of ways to test the ```f5acmehandler``` utility, including va
     tail -f /var/log/acmehandler
     ```
 
-* Trigger an initial ACME certificate fetch. This will loop through the ```dg_acme_handler_config``` data group and process ACME certificate renewal for each domain. In this case, it will create both the certificate and private key and install these to the BIG-IP. You can then use these in client SSL profiles that get attached to HTTPS virtual servers. In the BIG-IP, under **System - Certificate Management - Traffic Certificate Management - SSL Certificate List**, observe the installed certificate(s) and key(s). To see verbose output, add the ```--verbose``` command line argument.
+* Trigger an initial ACME certificate fetch. This will loop through the ```dg_acme_config``` data group and process ACME certificate renewal for each domain. In this case, it will create both the certificate and private key and install these to the BIG-IP. You can then use these in client SSL profiles that get attached to HTTPS virtual servers. In the BIG-IP, under **System - Certificate Management - Traffic Certificate Management - SSL Certificate List**, observe the installed certificate(s) and key(s). To see verbose output, add the ```--verbose``` command line argument.
 
     ```bash
     ./f5acmehandler.sh --verbose
