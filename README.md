@@ -173,7 +173,7 @@ where:
 
 ------------
 ### ${\textbf{\color{blue}ACME\ Protocol\ Flow}}$
-Provided below are detailed descriptions of the control flows. The **ACME Functional Flow on BIG-IP** section describes the interaction of ```f5acmehandler``` and ACME client processes. The **ACME Protocol Flow Reference** details the general ACMEv2 protocol flow per [RFC8555](https://datatracker.ietf.org/doc/html/rfc8555).
+Provided below are detailed descriptions of the control flows. The **ACME Utility Architecture** section describes the files and folders in use. The **ACME Functional Flow on BIG-IP** section describes the interaction of ```f5acmehandler``` and ACME client processes. The **ACME Protocol Flow Reference** details the general ACMEv2 protocol flow per [RFC8555](https://datatracker.ietf.org/doc/html/rfc8555).
 
 <details>
 <summary><b>ACME Utility Architecture</b></summary>
