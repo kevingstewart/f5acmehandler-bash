@@ -368,12 +368,12 @@ process_handler_main() {
       mkdir /tmp/wellknown > /dev/null 2>&1
       
       ## Read from the config data group and loop through keys:values
-      config=true && [[ "$(tmsh list ltm data-group internal dg_acme_handler_config 2>&1)" =~ "was not found" ]] && config=false
+      config=true && [[ "$(tmsh list ltm data-group internal dg_acme_config 2>&1)" =~ "was not found" ]] && config=false
       if ($config)
       then
-         IFS=";" && for v in $(tmsh list ltm data-group internal dg_acme_handler_config one-line | sed -e 's/ltm data-group internal dg_acme_handler_config { records { //;s/ \} type string \}//;s/ { data /=/g;s/ \} /;/g;s/ \}//'); do process_handler_config $v; done
+         IFS=";" && for v in $(tmsh list ltm data-group internal dg_acme_config one-line | sed -e 's/ltm data-group internal dg_acme_config { records { //;s/ \} type string \}//;s/ { data /=/g;s/ \} /;/g;s/ \}//'); do process_handler_config $v; done
       else
-         process_errors "PANIC: There was an error accessing the dg_acme_handler_config data group. Please re-install.\n"
+         process_errors "PANIC: There was an error accessing the dg_acme_config data group. Please re-install.\n"
          exit 1
       fi
    fi
