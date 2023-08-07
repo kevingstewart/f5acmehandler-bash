@@ -19,12 +19,12 @@ curl -s ${f5acmehandler_url}/f5acmehandler.sh -o /shared/acme/f5acmehandler.sh &
 curl -s ${f5acmehandler_url}/f5hook.sh -o /shared/acme/f5hook.sh && chmod +x /shared/acme/f5hook.sh
 curl -s ${f5acmehandler_url}/config -o /shared/acme/config
 
-## Create BIG-IP data groups (dg_acme_handler_service, dg_acme_handler_config)
-tmsh create ltm data-group internal dg_acme_handler_service type string > /dev/null 2>&1
-tmsh create ltm data-group internal dg_acme_handler_config type string > /dev/null 2>&1
+## Create BIG-IP data groups (dg_acme_challenge, dg_acme_config)
+tmsh create ltm data-group internal dg_acme_challenge type string > /dev/null 2>&1
+tmsh create ltm data-group internal dg_acme_config type string > /dev/null 2>&1
 
 ## Create BIG-IP iRule (acme_handler_rule)
-tmsh create ltm rule acme_handler_rule when RULE_INIT { set static::DEBUGACME 0 }\;when HTTP_REQUEST priority 2 {if { [string tolower [HTTP::uri]] starts_with \"/.well-known/acme-challenge/\" } {set response_content [class lookup [substr [HTTP::uri] 28] dg_acme_handler_service]\;if { \$response_content ne \"\" } { if { \$static::DEBUGACME } { log local0. \"[IP::client_addr]:[TCP::client_port]-[IP::local_addr]:[TCP::local_port] Good ACME response: \$response_content\" }\;HTTP::respond 200 -version auto content \$response_content noserver Content-Type {text/plain} Content-Length [string length \$response_content] Cache-Control no-store } else { if { \$static::DEBUGACME } { log local0. \"[IP::client_addr]:[TCP::client_port]-[IP::local_addr]:[TCP::local_port] Bad ACME request\" }\;HTTP::respond 503 -version auto content \"\<html\>\<body\>\<h1\>503 - Error\<\/h1\>\<p\>Content not found.\<\/p\>\<\/body\>\<\/html\>\" noserver Content-Type {text/html} Cache-Control no-store }\;unset response_content\;event disable all\;return}} > /dev/null 2>&1
+tmsh create ltm rule acme_handler_rule when RULE_INIT { set static::DEBUGACME 0 }\;when HTTP_REQUEST priority 2 {if { [string tolower [HTTP::uri]] starts_with \"/.well-known/acme-challenge/\" } {set response_content [class lookup [substr [HTTP::uri] 28] dg_acme_challenge]\;if { \$response_content ne \"\" } { if { \$static::DEBUGACME } { log local0. \"[IP::client_addr]:[TCP::client_port]-[IP::local_addr]:[TCP::local_port] Good ACME response: \$response_content\" }\;HTTP::respond 200 -version auto content \$response_content noserver Content-Type {text/plain} Content-Length [string length \$response_content] Cache-Control no-store } else { if { \$static::DEBUGACME } { log local0. \"[IP::client_addr]:[TCP::client_port]-[IP::local_addr]:[TCP::local_port] Bad ACME request\" }\;HTTP::respond 503 -version auto content \"\<html\>\<body\>\<h1\>503 - Error\<\/h1\>\<p\>Content not found.\<\/p\>\<\/body\>\<\/html\>\" noserver Content-Type {text/html} Cache-Control no-store }\;unset response_content\;event disable all\;return}} > /dev/null 2>&1
 
 ## Create the log file
 touch /var/log/acmehandler
