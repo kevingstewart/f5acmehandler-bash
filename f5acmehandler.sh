@@ -2,9 +2,19 @@
 
 ## F5 BIG-IP ACME Client (Dehydrated) Handler Utility
 ## Maintainer: kevin-at-f5-dot-com
-## Description: 
+## Version: 20230824-2
+## Description: Wrapper utility script for Dehydrated ACME client
+## 
 ## Configuration and installation: 
-
+##    - Install: curl -s https://raw.githubusercontent.com/kevingstewart/f5acmehandler-bash/main/install.sh | bash
+##    - Update global config data group (dg_acme_config) - [domain] := --ca [acme-provider-url] [--config [config-path]]
+##        www.foo.com := --ca https://acme-v02.api.letsencrypt.org/directory
+##        www.bar.com := --ca https://acme.zerossl.com/v2/DV90 --config /shared/acme/config_www_example_com
+##        www.baz.com := --ca https://acme.locallab.com:9000/directory -a rsa
+##    - Update client config file (/shared/acme/config), and/or create new config files per provider as needed (name must start with "config")
+##    - Create HTTP VIPs to match corresponding HTTPS VIPs, and attach iRule (acme_handler_rule)
+##    - Perform an initial fetch: cd /shared/acme && ./f5acmehandler.sh
+##    - Set a cron-based schedule: cd /shared/acme && ./f5acmehandler.sh --schedule "00 04 * * 1"
 
 
 ## ================================================== ##
