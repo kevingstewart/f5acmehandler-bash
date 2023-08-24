@@ -325,6 +325,21 @@ In development...
 In development...
 </details>
 
+<details>
+<summary><b>Uninstall</b></summary>
+
+To uninstall all objects:
+
+```bash
+curl -s https://raw.githubusercontent.com/kevingstewart/f5acmehandler-bash/main/uninstall.sh | bash
+```
+
+***Note** that the dg_acme_challenge data group, and acme_handler_rule iRule are not deleted in the uninstall script, as they are referenced outside of the ```f5acmehandler.sh``` utility.*
+
+<br />
+
+</details>
+
 <br />
 
 
