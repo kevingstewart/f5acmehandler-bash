@@ -2,8 +2,8 @@
 
 ## F5 BIG-IP ACME Client (Dehydrated) Hook Script
 ## Maintainer: kevin-at-f5-dot-com
-## Description: 
-## Configuration and installation: 
+## Version: 20230824-2
+## Description: ACME client hook script used for staging ACME http-01 challenge response, then cleanup
 
 
 
