@@ -14,6 +14,7 @@ This utility defines a wrapper for the Bash-based [Dehydrated](https://github.co
 * Supports explicit proxy egress
 * Supports SAN certificate renewal
 * Supports scheduling
+* Supports High Availability
 * Supports debug logging
 
 <br />
@@ -47,7 +48,7 @@ Configuration Options** section below for additional details. Examples:
 
     ```bash
     cd /shared/acme
-    ./f5acmehandler.sh
+    ./f5acmehandler.sh --verbose
     ```
 
 * ${\large{\textbf{\color{red}Step\ 6}}}$ (Schedule):  Once all configuration updates have been made and the utility function is working as desired, define scheduling to automate the process. By default, each domain (certificate) is checked against the defined threshold (default: 30 days) and only continues if the threshold is exceeded. See the **Scheduling** section below for additional details. For example, to set a weekly schedule, to initiate an update check **every Monday at 4am**:
@@ -95,7 +96,7 @@ www.baz.com := --ca https://acme.locallab.com:9000/directory -a rsa
 
 <br />
 
-Within the ```/shared/acme/config``` file are a number of additional client attributes. This utility allows for per-domain configurations, for example, when EAB is needed for some providers, but not others. Adjust the following atttributes as required for your Acme provider(s).
+Within the ```/shared/acme/config``` file are a number of additional client attributes. This utility allows for per-domain configurations, for example, when EAB is needed for some providers, but not others. Adjust the following atttributes as required for your Acme provider(s). All additional config files **must** start with "config_" (ex. config_www_foo_com).
 
 | **Config Options**    | **Description**                                                                                                                                 |
 |-----------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -134,6 +135,7 @@ The ```f5acmehandler.sh``` utility script also supports a set of commandline opt
 | --testrevocation [domain]     | Attempt to performs an OCSP revocation check on an existing certificate (domain)
 | --uninstall                   | Deletes the cron scheduling                                                                      |
 | --verbose                     | Dump verbose output to stdout                                                                    |
+| --save                        | Save the local config to HA central store (only for HA)                                          |
 | --help                        | Shows the help information for above command options                                             |
 </details>
 
@@ -288,6 +290,26 @@ This will return one of the following possible values:
 | revoked     | The OCSP check was successful and the response was revoked                                                                                       |
 | notrevoked  | The OCSP check was successful and the response was not revoked                                                                                   |
 | unavailable | The OCSP check was not performed, in the case that the utility is unable to collect a chain (issuer) and OCSP URI value from the certificate     |
+
+<br />
+
+</details>
+
+<details>
+<summary><b>High Availability</b></summary>
+    
+In an HA environment, the ```f5acmehandler.sh``` utility stores state information in iFile objects. On start, account and config state are pulled from the iFiles, and on completion, the account and config state is pushed back to iFiles if any changes are detected:
+
+| **iFile**              | **Description**                                                                                                                                  |
+|------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------|
+| f5_acme_account_state  | Stores the compressed and encoded contents of the /shared/acme/accounts folder                                                                   |
+| f5_acme_config_state   | Stores the compressed and encoded contents of all "config*" files in /shared/acme                                                                |
+
+While account state is always read from and pushed back to iFile (in an HA environment), the ```--save``` command-line option enables the utility script to read from local config files, then pushing all config state up to iFiles on completion. In Standalone environments, account and config state are always stored locally in the /shared/acme folder.
+
+```
+./f5acmehandler.sh --save
+```
 
 <br />
 
