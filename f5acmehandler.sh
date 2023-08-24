@@ -19,6 +19,9 @@ LOGFILE=/var/log/acmehandler
 FORCERENEW="no"
 SINGLEDOMAIN=""
 VERBOSE="no"
+ACCTSTATEEXISTS="no"
+CONFSTATEEXISTS="no"
+SAVECONFIG="no"
 
 
 ## Function: process_errors --> print error and debug logs to the log file
@@ -277,6 +280,120 @@ process_check_registered() {
 }
 
 
+## Function: process_get_configs --> pulls configs from iFile central store into local folder
+process_get_configs() {
+   ## Only run this on HA systems
+   ISHA=$(tmsh show cm sync-status | grep Standalone | wc -l)
+   if [[ "${ISHA}" = "0" ]]
+   then
+      ## ACCOUNTS STATE DATA 
+      ## Test if the iFile exists (f5_acme_state) and pull into local folder if it does
+      ifileexists=true && [[ "$(tmsh list sys file ifile f5_acme_account_state 2>&1)" =~ "was not found" ]] && ifileexists=false
+      if ($ifileexists)
+      then
+         cat $(tmsh list sys file ifile f5_acme_account_state -hidden | grep cache-path | sed -E 's/^\s+cache-path\s//') | base64 -d | tar xz
+         ACCTSTATEEXISTS="yes"
+         process_errors "DEBUG Pulling acme account state information from iFile central storage\n"
+      else
+         ACCTSTATEEXISTS="no"
+         process_errors "DEBUG No iFile central account store found - New state data will need to be created locally\n"
+      fi
+      
+      ## Generate checksum on accounts state file (accounts folder)
+      # STARTSUM=$(find -type f \( -path "./accounts/*" -o -name "config*" \) -exec md5sum {} \; | sort -k 2 | md5sum | awk -F" " '{print $1}')
+      ACCTSTARTSUM=$(find -type f \( -path "./accounts/*" \) -exec md5sum {} \; | sort -k 2 | md5sum | awk -F" " '{print $1}')
+      
+      ## Generate checksum on config state files (config* files)
+      CONFSTARTSUM=$(find -type f \( -name "config*" \) -exec md5sum {} \; | sort -k 2 | md5sum | awk -F" " '{print $1}')
+
+
+      ## CONFIGS STATE DATA 
+      ## Process config files only if --save is specified
+      if [[ "${SAVECONFIG}" == "yes" ]]
+      then
+         ## SAVECONFIG enabled - do not get config state from central store
+         process_errors "DEBUG SAVECONFIG enabled - working from local config data\n"
+      else
+         ## SAVECONFIG not enabled - get the config state from central store
+         ## Test if the iFile exists (f5_acme_state) and pull into local folder if it does
+         confifileexists=true && [[ "$(tmsh list sys file ifile f5_acme_config_state 2>&1)" =~ "was not found" ]] && confifileexists=false
+         if ($confifileexists)
+         then
+            cat $(tmsh list sys file ifile f5_acme_config_state -hidden | grep cache-path | sed -E 's/^\s+cache-path\s//') | base64 -d | tar xz
+            CONFSTATEEXISTS="yes"
+            process_errors "DEBUG Pulling acme config state information from iFile central storage\n"
+         else
+            CONFSTATEEXISTS="no"
+            process_errors "DEBUG No iFile central config store found - New state data will need to be created locally\n"
+         fi
+      fi
+   fi
+}
+
+
+## Function: process_put_configs --> pushes local configs to iFile central store
+process_put_configs() {
+   ## Only run this on HA systems
+   if [[ "${ISHA}" = "0" ]]
+   then
+      ## ACCOUNTS STATE DATA 
+      ## Generate checksum on state files (accounts folder)
+      # ENDSUM=$(find -type f \( -path "./accounts/*" -o -name "config*" \) -exec md5sum {} \; | sort -k 2 | md5sum | awk -F" " '{print $1}')
+      ACCTENDSUM=$(find -type f \( -path "./accounts/*" \) -exec md5sum {} \; | sort -k 2 | md5sum | awk -F" " '{print $1}')
+
+      ## Generate checksum on state files (config files)
+      CONFENDSUM=$(find -type f \( -name "config*" \) -exec md5sum {} \; | sort -k 2 | md5sum | awk -F" " '{print $1}')
+
+      ## STARTSUM/ENDSUM inequality indicates that changes were made - push state changes to iFile store
+      if [[ "$ACCTSTARTSUM" != "$ACCTENDSUM" || "$ACCTSTATEEXISTS" == "no" ]]
+      then
+         process_errors "DEBUG START/END account checksums are different or iFile state is missing - pushing account state data to iFile central store\n"
+
+         ## First compress and base64-encode the accounts folder and config files
+         # tar -czf - accounts/ config* | base64 -w 0 > data.b64
+         tar -czf - accounts/ | base64 -w 0 > accounts.b64
+
+         ## Test if the iFile exists (f5_acme_account_state)
+         ifileexists=true && [[ "$(tmsh list sys file ifile f5_acme_account_state 2>&1)" =~ "was not found" ]] && ifileexists=false
+         if ($ifileexists)
+         then
+            ## iFile exists - update iFile and delete local file
+            tmsh modify sys file ifile f5_acme_account_state source-path file:///shared/acme/accounts.b64
+            rm -f accounts.b64
+         else
+            ## iFile doesn't exist - create iFile and delete local file
+            tmsh create sys file ifile f5_acme_account_state source-path file:///shared/acme/accounts.b64
+            rm -f accounts.b64
+         fi   
+      fi
+
+
+      ## CONFIGS STATE DATA 
+      if [[ "$CONFSTARTSUM" != "$CONFENDSUM" || "$CONFSTATEEXISTS" == "no" ]]
+      then
+         process_errors "DEBUG START/END config checksums are different or iFile state is missing - pushing config state data to iFile central store\n"
+
+         ## First compress and base64-encode the accounts folder and config files
+         # tar -czf - accounts/ config* | base64 -w 0 > data.b64
+         tar -czf - config* | base64 -w 0 > configs.b64
+
+         ## Test if the iFile exists (f5_acme_config_state)
+         confifileexists=true && [[ "$(tmsh list sys file ifile f5_acme_config_state 2>&1)" =~ "was not found" ]] && confifileexists=false
+         if ($confifileexists)
+         then
+            ## iFile exists - update iFile and delete local file
+            tmsh modify sys file ifile f5_acme_config_state source-path file:///shared/acme/configs.b64
+            rm -f configs.b64
+         else
+            ## iFile doesn't exist - create iFile and delete local file
+            tmsh create sys file ifile f5_acme_config_state source-path file:///shared/acme/configs.b64
+            rm -f configs.b64
+         fi
+      fi      
+   fi
+}
+
+
 ## Function: process_revocation_check --> consume BIG-IP certificate object name as input and attempt to perform a direct OCSP revocation check
 process_revocation_check() {
    ## Fetch PEM certificate from BIG-IP, separate into cert and chain, and get OCSP URI
@@ -364,6 +481,9 @@ process_handler_main() {
    ACTIVE=$(tmsh show cm failover-status | grep ACTIVE | wc -l)
    if [[ "${ACTIVE}" = "1" ]]
    then
+      ## Call process_get_configs to retrieve centrally stored iFile state data into the local folder
+      process_get_configs
+
       ## Create wellknown folder
       mkdir /tmp/wellknown > /dev/null 2>&1
       
@@ -376,6 +496,9 @@ process_handler_main() {
          process_errors "PANIC: There was an error accessing the dg_acme_config data group. Please re-install.\n"
          exit 1
       fi
+
+      ## Call process_put_configs to push local state data into central iFile store
+      process_put_configs
    fi
 }
 
@@ -389,6 +512,7 @@ command_help() {
   printf "Usage: %s [--schedule <cron>]\n"
   printf "Usage: %s [--testrevocation <domain>]\n"
   printf "Usage: %s [--uninstall]\n"
+  printf "Usage: %s [--save]\n"
   printf "Usage: %s [--verbose]\n\n"
   printf "Default (no arguments): renewal operations\n"
   printf -- "\nParameters:\n"
@@ -399,6 +523,7 @@ command_help() {
   printf " --schedule <cron>:\t\tInstall/update the scheduler. See REPO for scheduling instructions\n"
   printf " --testrevocation <domain>:\tAttempt to performs an OCSP revocation check on an existing certificate (domain)\n"
   printf " --uninstall:\t\t\tUninstall the scheduler\n"
+  printf " --save:\t\t\tSave the local config to HA central store (only for HA)\n"
   printf " --verbose:\t\t\tDump verbose output to stdout\n\n\n"
 }
 
@@ -448,6 +573,10 @@ main() {
 
          --force)
            FORCERENEW="yes"
+           ;;
+
+         --save)
+           SAVECONFIG="yes"
            ;;
 
          --verbose)
