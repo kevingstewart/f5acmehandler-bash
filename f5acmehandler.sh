@@ -2,7 +2,7 @@
 
 ## F5 BIG-IP ACME Client (Dehydrated) Handler Utility
 ## Maintainer: kevin-at-f5-dot-com
-## Version: 20230824-2
+## Version: 20230824-4
 ## Description: Wrapper utility script for Dehydrated ACME client
 ## 
 ## Configuration and installation: 
@@ -71,6 +71,17 @@ process_config_file() {
    then
       ## No config specified --> source from the default config file
       . /shared/acme/config
+
+      ## Test if WELLKNOWN entry are included in file, add if missing
+      if ! grep -q "WELLKNOWN=" /shared/acme/config
+      then 
+         echo "WELLKNOWN=\"/tmp/wellknown\"" >> /shared/acme/config
+      fi
+      ## Test if HOOK entry are included in file, add if missing
+      if ! grep -q "HOOK=" /shared/acme/config
+      then 
+         echo "HOOK=\"\${BASEDIR}/f5hook.sh\"" >> /shared/acme/config
+      fi
    else
       ## Alternate config specified --> source from this alternate config file
       THIS_COMMAND_CONFIG=$(echo ${COMMAND_CONFIG} | sed -E 's/--config //')
@@ -80,6 +91,17 @@ process_config_file() {
          continue
       else
          . "${THIS_COMMAND_CONFIG}"
+      fi
+
+      ## Test if WELLKNOWN entry are included in file, add if missing
+      if ! grep -q "WELLKNOWN=" "${THIS_COMMAND_CONFIG}"
+      then 
+         echo "WELLKNOWN=\"/tmp/wellknown\"" >> "${THIS_COMMAND_CONFIG}"
+      fi
+      ## Test if HOOK entry are included in file, add if missing
+      if ! grep -q "HOOK=" config
+      then 
+         echo "HOOK=\"\${BASEDIR}/f5hook.sh\"" >> "${THIS_COMMAND_CONFIG}"
       fi
    fi
 }
@@ -374,7 +396,9 @@ process_put_configs() {
             ## iFile doesn't exist - create iFile and delete local file
             tmsh create sys file ifile f5_acme_account_state source-path file:///shared/acme/accounts.b64
             rm -f accounts.b64
-         fi   
+         fi 
+      else
+         process_errors "DEBUG START/END account checksums detects no changes - not pushing account state data to iFile central store\n"
       fi
 
 
@@ -399,6 +423,8 @@ process_put_configs() {
             tmsh create sys file ifile f5_acme_config_state source-path file:///shared/acme/configs.b64
             rm -f configs.b64
          fi
+      else
+         process_errors "DEBUG START/END config checksums detects no changes - not pushing config state data to iFile central store\n"
       fi      
    fi
 }
@@ -495,7 +521,7 @@ process_handler_main() {
       process_get_configs
 
       ## Create wellknown folder
-      mkdir /tmp/wellknown > /dev/null 2>&1
+      mkdir -p /tmp/wellknown > /dev/null 2>&1
       
       ## Read from the config data group and loop through keys:values
       config=true && [[ "$(tmsh list ltm data-group internal dg_acme_config 2>&1)" =~ "was not found" ]] && config=false
