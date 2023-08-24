@@ -1,12 +1,8 @@
 ## F5 BIG-IP ACME Client (Dehydrated) Configuration File
 ## Maintainer: kevin-at-f5-dot-com
-## Description: 
-## Configuration and installation: 
-########################################################
-# This is the main config file for dehydrated          #
-# This file is looked for in /shared/acme/config       #
-# Default values of this config are in comments        #
-########################################################
+## Version: 20230824-2
+## Description: Contains per-provider ACME client configuration settings
+
 
 
 ########################################################
