@@ -33,3 +33,5 @@ tmsh create ltm rule acme_handler_rule when RULE_INIT { set static::DEBUGACME 0 
 
 ## Create the log file
 touch /var/log/acmehandler
+
+echo "done"
