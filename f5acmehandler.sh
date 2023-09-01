@@ -2,7 +2,7 @@
 
 ## F5 BIG-IP ACME Client (Dehydrated) Handler Utility
 ## Maintainer: kevin-at-f5-dot-com
-## Version: 20230824-4
+## Version: 20230901-1
 ## Description: Wrapper utility script for Dehydrated ACME client
 ## 
 ## Configuration and installation: 
@@ -70,17 +70,17 @@ process_config_file() {
    if [[ "$COMMAND_CONFIG" == "" ]]
    then
       ## No config specified --> source from the default config file
-      . /shared/acme/config
+      . "${ACMEDIR}/config"
 
       ## Test if WELLKNOWN entry are included in file, add if missing
-      if ! grep -q "WELLKNOWN=" /shared/acme/config
+      if ! grep -q "WELLKNOWN=" "${ACMEDIR}/config"
       then 
-         echo "WELLKNOWN=\"/tmp/wellknown\"" >> /shared/acme/config
+         echo "WELLKNOWN=\"/tmp/wellknown\"" >> "${ACMEDIR}/config"
       fi
       ## Test if HOOK entry are included in file, add if missing
-      if ! grep -q "HOOK=" /shared/acme/config
+      if ! grep -q "HOOK=" "${ACMEDIR}/config"
       then 
-         echo "HOOK=\"\${BASEDIR}/f5hook.sh\"" >> /shared/acme/config
+         echo "HOOK=\"\${BASEDIR}/f5hook.sh\"" >> "${ACMEDIR}/config"
       fi
    else
       ## Alternate config specified --> source from this alternate config file
@@ -99,7 +99,7 @@ process_config_file() {
          echo "WELLKNOWN=\"/tmp/wellknown\"" >> "${THIS_COMMAND_CONFIG}"
       fi
       ## Test if HOOK entry are included in file, add if missing
-      if ! grep -q "HOOK=" config
+      if ! grep -q "HOOK=" "${THIS_COMMAND_CONFIG}"
       then 
          echo "HOOK=\"\${BASEDIR}/f5hook.sh\"" >> "${THIS_COMMAND_CONFIG}"
       fi
@@ -293,7 +293,7 @@ process_handler_config () {
          generate_cert_from_csr "$DOMAIN" "$COMMAND"
       else
          process_errors "DEBUG (handler: bypass) Bypassing renewal process for ${DOMAIN} - Certificate within threshold\n"
-         return
+         #return
       fi
    fi
 }
@@ -333,10 +333,12 @@ process_get_configs() {
       
       ## Generate checksum on accounts state file (accounts folder)
       # STARTSUM=$(find -type f \( -path "./accounts/*" -o -name "config*" \) -exec md5sum {} \; | sort -k 2 | md5sum | awk -F" " '{print $1}')
-      ACCTSTARTSUM=$(find -type f \( -path "./accounts/*" \) -exec md5sum {} \; | sort -k 2 | md5sum | awk -F" " '{print $1}')
+      # ACCTSTARTSUM=$(find -type f \( -path "./accounts/*" \) -exec md5sum {} \; | sort -k 2 | md5sum | awk -F" " '{print $1}')
+      ACCTSTARTSUM=$(find "${ACMEDIR}/accounts" -type f \( -path "*" \) -exec md5sum {} \; | sort -k 2 | md5sum | awk -F" " '{print $1}')
       
       ## Generate checksum on config state files (config* files)
-      CONFSTARTSUM=$(find -type f \( -name "config*" \) -exec md5sum {} \; | sort -k 2 | md5sum | awk -F" " '{print $1}')
+      # CONFSTARTSUM=$(find -type f \( -name "config*" \) -exec md5sum {} \; | sort -k 2 | md5sum | awk -F" " '{print $1}')
+      CONFSTARTSUM=$(find "${ACMEDIR}" -type f \( -name "config*" \) -exec md5sum {} \; | sort -k 2 | md5sum | awk -F" " '{print $1}')
 
 
       ## CONFIGS STATE DATA 
@@ -371,10 +373,12 @@ process_put_configs() {
       ## ACCOUNTS STATE DATA 
       ## Generate checksum on state files (accounts folder)
       # ENDSUM=$(find -type f \( -path "./accounts/*" -o -name "config*" \) -exec md5sum {} \; | sort -k 2 | md5sum | awk -F" " '{print $1}')
-      ACCTENDSUM=$(find -type f \( -path "./accounts/*" \) -exec md5sum {} \; | sort -k 2 | md5sum | awk -F" " '{print $1}')
+      # ACCTENDSUM=$(find -type f \( -path "./accounts/*" \) -exec md5sum {} \; | sort -k 2 | md5sum | awk -F" " '{print $1}')
+      ACCTENDSUM=$(find "${ACMEDIR}/accounts" -type f \( -path "*" \) -exec md5sum {} \; | sort -k 2 | md5sum | awk -F" " '{print $1}')
 
       ## Generate checksum on state files (config files)
-      CONFENDSUM=$(find -type f \( -name "config*" \) -exec md5sum {} \; | sort -k 2 | md5sum | awk -F" " '{print $1}')
+      # CONFENDSUM=$(find -type f \( -name "config*" \) -exec md5sum {} \; | sort -k 2 | md5sum | awk -F" " '{print $1}')
+      CONFENDSUM=$(find "${ACMEDIR}" -type f \( -name "config*" \) -exec md5sum {} \; | sort -k 2 | md5sum | awk -F" " '{print $1}')
 
       ## STARTSUM/ENDSUM inequality indicates that changes were made - push state changes to iFile store
       if [[ "$ACCTSTARTSUM" != "$ACCTENDSUM" || "$ACCTSTATEEXISTS" == "no" ]]
@@ -383,18 +387,18 @@ process_put_configs() {
 
          ## First compress and base64-encode the accounts folder and config files
          # tar -czf - accounts/ config* | base64 -w 0 > data.b64
-         tar -czf - accounts/ | base64 -w 0 > accounts.b64
+         tar -czf - "${ACMEDIR}/accounts/" | base64 -w 0 > "${ACMEDIR}/accounts.b64"
 
          ## Test if the iFile exists (f5_acme_account_state)
          ifileexists=true && [[ "$(tmsh list sys file ifile f5_acme_account_state 2>&1)" =~ "was not found" ]] && ifileexists=false
          if ($ifileexists)
          then
             ## iFile exists - update iFile and delete local file
-            tmsh modify sys file ifile f5_acme_account_state source-path file:///shared/acme/accounts.b64
+            tmsh modify sys file ifile f5_acme_account_state source-path "file://${ACMEDIR}/accounts.b64"
             rm -f accounts.b64
          else
             ## iFile doesn't exist - create iFile and delete local file
-            tmsh create sys file ifile f5_acme_account_state source-path file:///shared/acme/accounts.b64
+            tmsh create sys file ifile f5_acme_account_state source-path "file://${ACMEDIR}/accounts.b64"
             rm -f accounts.b64
          fi 
       else
@@ -409,18 +413,18 @@ process_put_configs() {
 
          ## First compress and base64-encode the accounts folder and config files
          # tar -czf - accounts/ config* | base64 -w 0 > data.b64
-         tar -czf - config* | base64 -w 0 > configs.b64
+         tar -czf - "${ACMEDIR}/config*" | base64 -w 0 > "${ACMEDIR}/configs.b64"
 
          ## Test if the iFile exists (f5_acme_config_state)
          confifileexists=true && [[ "$(tmsh list sys file ifile f5_acme_config_state 2>&1)" =~ "was not found" ]] && confifileexists=false
          if ($confifileexists)
          then
             ## iFile exists - update iFile and delete local file
-            tmsh modify sys file ifile f5_acme_config_state source-path file:///shared/acme/configs.b64
+            tmsh modify sys file ifile f5_acme_config_state source-path "file://${ACMEDIR}/configs.b64"
             rm -f configs.b64
          else
             ## iFile doesn't exist - create iFile and delete local file
-            tmsh create sys file ifile f5_acme_config_state source-path file:///shared/acme/configs.b64
+            tmsh create sys file ifile f5_acme_config_state source-path "file://${ACMEDIR}/configs.b64"
             rm -f configs.b64
          fi
       else
@@ -468,9 +472,9 @@ process_listaccounts() {
    printf "\nThe following ACME providers are registered:\n\n"
    for acct in ${ACMEDIR}/accounts/*
    do
-      acct_tmp=$(echo $acct | sed -E 's/\/shared\/acme\/accounts\///')
+      acct_tmp=$(echo $acct | sed -E 's/.*\/accounts\///')
       printf "   PROVIDER: $(process_base64_decode $acct_tmp)\n"
-      printf "   LOCATION: /shared/acme/accounts/$acct_tmp\n\n"
+      printf "   LOCATION: ${ACMEDIR}/accounts/$acct_tmp\n\n"
    done
 }
 
@@ -492,7 +496,7 @@ process_schedule() {
       crontab -l |grep -v f5acmehandler | crontab
 
       ## Write entry to bottom of the file
-      echo "${CRON} /shared/acme/f5acmehandler.sh" >> /var/spool/cron/${myuser}
+      echo "${CRON} ${ACMEDIR}/f5acmehandler.sh" >> /var/spool/cron/${myuser}
 
       printf "\nThe f5acmehandler script has been scheduled. Current crontab:\n\n"
       crontab -l | sed 's/^/   /'
@@ -536,6 +540,8 @@ process_handler_main() {
       ## Call process_put_configs to push local state data into central iFile store
       process_put_configs
    fi
+
+   return 0
 }
 
 
