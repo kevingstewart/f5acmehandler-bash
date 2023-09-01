@@ -14,7 +14,7 @@ This utility defines a wrapper for the Bash-based [Dehydrated](https://github.co
 * Supports explicit proxy egress
 * Supports SAN certificate renewal
 * Supports scheduling
-* Supports High Availability
+* Supports high availability
 * Supports debug logging
 
 <br />
@@ -317,7 +317,64 @@ While account state is always read from and pushed back to iFile (in an HA envir
 
 <details>
 <summary><b>Working with BIG-IQ</b></summary>
-In development...
+
+Working with BIG-IQ primarily involves "Script Management", and can broken down into the following set of tasks:
+
+* On the BIG-IP(s), ensure Advanced Shell access is enabled for the admin user:
+  - System --> Users --> User List --> Admin user
+  - Terminal Access: Advanced shell 
+
+* **Installing the f5acmehandler utility** (on all managed BIG-IP devices)
+  - Devices --> Script Management --> Scripts (Add)
+      - Name: Install f5acmehandler utility
+      - Script:
+
+      ```
+      curl -s https://raw.githubusercontent.com/kevingstewart/f5acmehandler-bash/main/install.sh | bash
+      ```
+      - Save & Close
+   
+  - Devices --> Script Management --> Scripts (Run)
+      - Name: Install f5acmehandler utility
+      - Script: (select script)
+      - Select BIG-IP Devices: (select all managed BIG-IP devices)
+
+* **Scheduling the f5acmehandler utility** (on all managed BIG-IP devices)
+  - Devices --> Script Management --> Scripts (Add)
+      - Name: Schedule f5acmehandler utility
+      - Script:
+
+      ```
+      tmsh modify ltm data-group internal dg_acme_config records replace-all-with { \
+      "bar.acmelabs.com" { data "-a rsa --ca https://10.1.30.6:14000/dir" } \
+      "foo.acmelabs.com" { data "-a rsa --ca https://10.1.30.6:9000/acme/acme/directory" } \
+      "test.acmelabs.com" { data "-a rsa --ca https://10.1.30.6:14000/dir" } \
+      "www.acmelabs.com" { data "-a rsa --ca https://10.1.30.6:9000/acme/acme/directory" } }
+      ```
+      - Save & Close
+
+  - Devices --> Script Management --> Scripts (Run)
+      - Name: Schedule f5acmehandler utility
+      - Script: (select script)
+      - Select BIG-IP Devices: (select all managed BIG-IP devices)
+
+* **Initiating a first run of the f5acmehandler utility** (on the **active** BIG-IP devices)
+  - Devices --> Script Management --> Scripts (Add)
+      - Name: Run f5acmehandler utility
+      - Script:
+
+      ```
+      /shared/acme/f5acmehandler.sh --verbose
+      ```
+      - Save & Close
+
+  - Devices --> Script Management --> Scripts (Run)
+      - Name: Run f5acmehandler utility
+      - Script: (select script)
+      - Select BIG-IP Devices: (select the **active** BIG-IP devices)
+
+<br />
+
 </details>
 
 <details>
