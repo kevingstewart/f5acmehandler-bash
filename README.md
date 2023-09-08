@@ -1,10 +1,10 @@
-# ACME Certificate Renewal Utility for F5 BIG-IP
+# ACMEv2 Certificate Renewal Utility for F5 BIG-IP
 
-### An ACMEv2 client wrapper function for integration and advanced features on the F5 BIG-IP
+### An ACMEv2 client utility function for integration and advanced features on the F5 BIG-IP
 
-### DRAFT: In Development
+### ${\textbf{\color{orangered}Draft:\ In\ Development}}$
 
-This utility defines a wrapper for the Bash-based [Dehydrated](https://github.com/dehydrated-io/dehydrated) ACMEv2 client, supporting direct integration with F5 BIG-IP, and including additional advanced features:
+This project defines a set of utility functions around the [Dehydrated](https://github.com/dehydrated-io/dehydrated) ACMEv2 client, supporting direct integration with F5 BIG-IP, and including additional advanced features:
 
 * Simple installation, configuration, and scheduling
 * Supports renewal with existing private keys to enable certificate automation in HSM/FIPS environments
@@ -13,7 +13,7 @@ This utility defines a wrapper for the Bash-based [Dehydrated](https://github.co
 * Supports OCSP and periodic revocation testing
 * Supports explicit proxy egress
 * Supports SAN certificate renewal
-* Supports scheduling
+* Supports granular scheduling
 * Supports high availability
 * Supports debug logging
 
@@ -21,18 +21,17 @@ This utility defines a wrapper for the Bash-based [Dehydrated](https://github.co
 
 ------------
 ### ${\textbf{\color{blue}Installation\ and\ Configuration}}$
-Installation to the BIG-IP is simple. The only constraint is that the certificate objects installed on the BIG-IP **must** be named after the certificate subject name. For example, if the certificate subject name is ```www.foo.com```, then the installed certificate and key must also be named ```www.foo.com```. Certificate automation is predicated on this naming construct. 
+Installation to the BIG-IP is simple. The only constraint is that the certificate objects installed on the BIG-IP **must** be named after the certificate subject name. For example, if the certificate subject name is ```www.foo.com```, then the installed certificate and key must also be named ```www.foo.com```. Certificate automation is predicated on this naming construct. To install the utility functions to the BIG-IP:
 
 <br />
 
-* ${\large{\textbf{\color{red}Step\ 1}}}$ (Install): SSH to the BIG-IP shell and run the following command. This will install all required components.
+* ${\normalsize{\textbf{\color{red}Step\ 1}}}$ (Install): SSH to the BIG-IP shell and run the following command. This will install all required components to the /shared/acme folder on the BIG-IP. In an HA environment, perform this action on both BIG-IP instances.
 
     ```bash
     curl -s https://raw.githubusercontent.com/kevingstewart/f5acmehandler-bash/main/install.sh | bash
     ```
 
-* ${\large{\textbf{\color{red}Step\ 2}}}$ (Global Config): Update the new ```dg_acme_config``` data group and add entries for each managed domain (certificate subject). See the **Global 
-Configuration Options** section below for additional details. Examples:
+* ${\normalsize{\textbf{\color{red}Step\ 2}}}$ (Global Configuration): Update the new ```dg_acme_config``` data group and add entries for each managed domain (certificate subject). You must minimally include the subject/domain (key) and a corresponding ```--ca``` value. In an HA environment, this data group is synced between the peers. See the **Global Configuration Options** section below for additional details. Examples:
 
     ```lua
     www.foo.com := --ca https://acme-v02.api.letsencrypt.org/directory
@@ -40,18 +39,18 @@ Configuration Options** section below for additional details. Examples:
     www.baz.com := --ca https://acme.locallab.com:9000/directory -a rsa
     ```
 
-* ${\large{\textbf{\color{red}Step\ 3}}}$ (Client Config): Adjust the client configuration ```config``` file in the /shared/acme folder as needed for your environment. In most cases you'll only need a single client config file, but this utility allows for per-domain configurations. For example, you can define separate config files when EAB is needed for some provider(s), but not others. See the **ACME Client Configuration Options** section below for additional details.
+* ${\normalsize{\textbf{\color{red}Step\ 3}}}$ (Client Configuration): Adjust the client configuration ```config``` file in the /shared/acme folder as needed for your environment. In most cases you will only need a single client config file, but this utility allows for per-domain client configurations. For example, you can define separate config files when EAB is needed for some provider(s), but not others. In an HA environment, the utility ensures these config files are available to the peer. See the **ACME Client Configuration Options** section below for additional details.
 
-* ${\large{\textbf{\color{red}Step\ 4}}}$ (HTTP VIPs): Minimally ensure that an HTTP virtual server exists on the BIG-IP that matches the DNS resolution of each target domain (certificate subject). Attach the ```acme_handler_rule``` iRule to each HTTP virtual server.
+* ${\normalsize{\textbf{\color{red}Step\ 4}}}$ (HTTP Virtual Servers): Minimally ensure that an HTTP virtual server exists on the BIG-IP that matches the DNS resolution of each target domain (certificate subject). As a function of the ACMEv2 http-01 challenge process, the ACME server will attempt to contact the requested domain IP address on port 80 (HTTP). Attach the ```acme_handler_rule``` iRule to each HTTP virtual server.
 
-* ${\large{\textbf{\color{red}Step\ 5}}}$ (Fetch):  Initiate an ACME fetch. This command will loop through the ```dg_acme_config``` data group and perform required ACME certificate renewal operations for each configured domain. By default, if no certificate and key exists, ACME renewal will generate a new certificate and key. If a private key exists, a CSR is generated from the existing key to renew the certificate only. This it to support HSM/FIPS environments, but can be disabled. See the **Utility Command Line Options** and **ACME Client Configuration Options** sections below for additional details.
+* ${\normalsize{\textbf{\color{red}Step\ 5}}}$ (Initial Fetch):  Initiate an ACMEv2 fetch. This command will loop through the ```dg_acme_config``` global configuration data group and perform required ACMEv2 certificate renewal operations for each configured domain. By default, if no certificate and key exists for a domain, ACMEv2 renewal will generate a new certificate and key. If a private key exists, a CSR is generated from the existing key to renew the certificate only. This it to support HSM/FIPS environments, but can be disabled to always generate a new private key. See the **Utility Command Line Options** and **ACME Client Configuration Options** sections below for additional details.
 
     ```bash
     cd /shared/acme
     ./f5acmehandler.sh --verbose
     ```
 
-* ${\large{\textbf{\color{red}Step\ 6}}}$ (Schedule):  Once all configuration updates have been made and the utility function is working as desired, define scheduling to automate the process. By default, each domain (certificate) is checked against the defined threshold (default: 30 days) and only continues if the threshold is exceeded. See the **Scheduling** section below for additional details. For example, to set a weekly schedule, to initiate an update check **every Monday at 4am**:
+* ${\normalsize{\textbf{\color{red}Step\ 6}}}$ (Schedule):  Once all configuration updates have been made and the utility function is working as desired, define scheduling to automate the process. By default, each domain (certificate) is checked against the defined threshold (default: 30 days) and only continues if the threshold is exceeded. In an HA environment, perform this action on both BIG-IP instances. See the **Scheduling** section below for additional details. For example, to set a weekly schedule, to initiate an update check **every Monday at 4am**:
 
     ```
     cd /shared/acme
@@ -65,7 +64,7 @@ Configuration Options** section below for additional details. Examples:
 Configuration options for this utility are found in the following locations:
 
 <details>
-<summary><b>Global Configuration Options</b> define the set of domains that are to be handled, the designated ACME provider, and optional unique local configuration settings. This list is maintained in a BIG-IP data group (dg_acme_config)</summary>
+<summary><b>Global Configuration Options</b> define the set of domains that are to be handled, the (CA) directory URL of the designated ACMEv2 provider, and any optional unique configuration settings. This list is maintained in a BIG-IP data group (dg_acme_config)</summary>
 
 <br />
 
@@ -73,11 +72,11 @@ Global configuration options are specified in the ```dg_acme_config``` data grou
 
 <br />
 
-| **Value Options** | **Description**                                 | **Examples**                                                                       | **Required**|
-|-------------------|-------------------------------------------------|------------------------------------------------------------------------------------|-------------|
-| --ca              | Defines the ACME provider URL                   | --ca https://acme-v02.api.letsencrypt.org/directory           (Let's Encrypt)<br />--ca https://acme-staging-v02.api.letsencrypt.org/directory   (LE Staging)<br />--ca https://acme.zerossl.com/v2/DV90                         (ZeroSSL)<br />--ca https://api.buypass.com/acme/directory                   (Buypass)<br />--ca https://api.test4.buypass.no/acme/directory              (Buypass Test)       |     $${\large{\textbf{\color{red}Yes}}}$$     |
-| --config          | Defines an alternate config file<br />(default /shared/acme/config)                | --config /shared/acme/config_www_foo_com                                        |     $${\large{\textbf{\color{black}No}}}$$      |
-| -a                | Overrides the required leaf certificate<br />algorithm specified in the config file.<br />Options:<br /><br />- rsa<br />- prime256v1<br />- secp384r1         | -a rsa<br />-a prime256v1<br />-a secp384r1                                                                             |     $${\large{\textbf{\color{black}No}}}$$      |   
+| **Value Options** | **Description**                                                                                                                                                      | **Examples**                                                                                                                                                                                                                                                                                                                                                                                                    | **Required**                                         |
+|-------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------|
+| --ca              | Defines the ACME provider URL                                                                                                                                        | --ca https://acme-v02.api.letsencrypt.org/directory           (Let's Encrypt)<br />--ca https://acme-staging-v02.api.letsencrypt.org/directory   (LE Staging)<br />--ca https://acme.zerossl.com/v2/DV90                         (ZeroSSL)<br />--ca https://api.buypass.com/acme/directory                   (Buypass)<br />--ca https://api.test4.buypass.no/acme/directory              (Buypass Test)       |     $${\normalsize{\textbf{\color{red}Yes}}}$$       |
+| --config          | Defines an alternate config file<br />(default /shared/acme/config)                                                                                                  | --config /shared/acme/config_www_foo_com                                                                                                                                                                                                                                                                                                                                                                        |     $${\normalsize{\textbf{\color{black}No}}}$$      |
+| -a                | Overrides the required leaf certificate<br />algorithm specified in the config file.<br />Options:<br /><br />- rsa<br />- prime256v1<br />- secp384r1               | -a rsa<br />-a prime256v1<br />-a secp384r1                                                                                                                                                                                                                                                                                                                                                                     |     $${\normalsize{\textbf{\color{black}No}}}$$      |   
 
 <br />
 
@@ -92,11 +91,11 @@ www.baz.com := --ca https://acme.locallab.com:9000/directory -a rsa
 </details>
 
 <details>
-<summary><b>ACME Client Configuration Options</b> define the per-domain ACME client attributes. These settings are maintained in a config text file stored in the "/shared/acme" folder on the BIG-IP.</summary>
+<summary><b>ACME Client Configuration Options</b> define the per-domain ACMEv2 client attributes. These settings are maintained in a config text file stored in the "/shared/acme" folder on the BIG-IP.</summary>
 
 <br />
 
-Within the ```/shared/acme/config``` file are a number of additional client attributes. This utility allows for per-domain configurations, for example, when EAB is needed for some providers, but not others. Adjust the following atttributes as required for your Acme provider(s). All additional config files **must** start with "config_" (ex. config_www_foo_com).
+Within the ```/shared/acme/config``` file are a number of additional client attributes. This utility allows for per-domain configurations, for example, when EAB is needed for some providers, but not others. Adjust the following atttributes as required for your ACME provider(s). All additional config files **must** start with "config_" (ex. config_www_foo_com).
 
 | **Config Options**    | **Description**                                                                                                                                 |
 |-----------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -124,11 +123,11 @@ Within the ```/shared/acme/config``` file are a number of additional client attr
 
 <br />
 
-The ```f5acmehandler.sh``` utility script also supports a set of commandline options for general maintenance usage. When no command options are specified, the utility loops through the ```dg_acme_config``` data group and performs required ACME certificate renewal operations for each configured domain.
+The ```f5acmehandler.sh``` utility script also supports a set of commandline options for general maintenance usage. When no command options are specified, the utility loops through the ```dg_acme_config``` data group and performs required ACMEv2 certificate renewal operations for each configured domain.
 
 | **Command Line Arguments**    | **Description**                                                                                  |
 |-------------------------------|--------------------------------------------------------------------------------------------------|
-| --force                       | Overrides the default certificate renewal threshhold check (default 30 days)                     |
+| --force                       | Overrides the default certificate renewal threshold check (default 30 days)                     |
 | --domain [domain]             | Performs ACME renewal functions for a single specified domain. Can be combined with --force<br />Examples:<br />--domain www.foo.com<br />--domain www.bar.com --force      |
 | --listaccounts                | Lists the registered ACME provider accounts                                                      |
 | --schedule [cron]             | Takes a cron string and installs this utility as a cron-scheduled process                        |
@@ -438,12 +437,13 @@ There are a number of ways to test the ```f5acmehandler``` utility, including va
     ```bash
     tail -f /var/log/acmehandler
     ```
-
-* Trigger an initial ACME certificate fetch. This will loop through the ```dg_acme_config``` data group and process ACME certificate renewal for each domain. In this case, it will create both the certificate and private key and install these to the BIG-IP. You can then use these in client SSL profiles that get attached to HTTPS virtual servers. In the BIG-IP, under **System - Certificate Management - Traffic Certificate Management - SSL Certificate List**, observe the installed certificate(s) and key(s). To see verbose output, add the ```--verbose``` command line argument.
+  or use the ```--verbose``` option with the f5acmehandler.sh script:
 
     ```bash
     ./f5acmehandler.sh --verbose
     ```
+
+* Trigger an initial ACMEv2 certificate fetch. This will loop through the ```dg_acme_config``` data group and process ACME certificate renewal for each domain. In this case, it will create both the certificate and private key and install these to the BIG-IP. You can then use these in client SSL profiles that get attached to HTTPS virtual servers. In the BIG-IP, under **System - Certificate Management - Traffic Certificate Management - SSL Certificate List**, observe the installed certificate(s) and key(s). 
 
 * Trigger a subsequent ACME certificate fetch, specifying a single domain and forcing renewal. Before launching the following command, open the properties of one of the certificates in the BIG-IP UI. After the command completes, refresh the certificate properties and observe the updated Serial Number and Fingerprint values.
 
