@@ -4,7 +4,7 @@
 
 ### ${\textbf{\color{orangered}Draft:\ In\ Development}}$
 
-This project defines a set of utility functions around the [Dehydrated](https://github.com/dehydrated-io/dehydrated) ACMEv2 client, supporting direct integration with F5 BIG-IP, and including additional advanced features:
+This project defines a set of utility functions for the [Dehydrated](https://github.com/dehydrated-io/dehydrated) ACMEv2 client, supporting direct integration with F5 BIG-IP, and including additional advanced features:
 
 * Simple installation, configuration, and scheduling
 * Supports renewal with existing private keys to enable certificate automation in HSM/FIPS environments
