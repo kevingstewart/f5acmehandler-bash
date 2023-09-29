@@ -2,20 +2,7 @@
 
 ### An ACMEv2 client utility function for integration and advanced features on the F5 BIG-IP
 
-### ${\textbf{\color{orangered}Draft:\ In\ Development}}$
-
 ${\LARGE{\textnormal{\textbf{\color{orangered}Draft:\ In\ Development}}}}$
-
-${\LARGE{\textrm{\textbf{\color{orangered}Draft:\ In\ Development}}}}$
-
-<div style="color: #ff3300; font-family: Courier; font-size: 2em;">INSPIRATION DAY 1</div>
-
-<div style="color: #ff3300; font-family: Helvetica; font-size: 2em;">INSPIRATION DAY 2</div>
-
-<div style="color: #ff3300; font-family: Verdana; font-size: 2em;">INSPIRATION DAY 3</div>
-
-<div style="color: #ff3300; font-family: Times New Roman; font-size: 2em;">INSPIRATION DAY 4</div>
-
 
 This project defines a set of utility functions for the [Dehydrated](https://github.com/dehydrated-io/dehydrated) ACMEv2 client, supporting direct integration with F5 BIG-IP, and including additional advanced features:
 
@@ -33,7 +20,9 @@ This project defines a set of utility functions for the [Dehydrated](https://git
 <br />
 
 ------------
-### ${\textbf{\color{blue}Installation\ and\ Configuration}}$
+<!-- ### ${\textbf{\color{blue}Installation\ and\ Configuration}}$ --->
+${\LARGE{\textnormal{\textbf{\color{blue}Installation\ and\ Configuration}}}}$
+
 Installation to the BIG-IP is simple. The only constraint is that the certificate objects installed on the BIG-IP **must** be named after the certificate subject name. For example, if the certificate subject name is ```www.foo.com```, then the installed certificate and key must also be named ```www.foo.com```. Certificate automation is predicated on this naming construct. To install the utility functions to the BIG-IP:
 
 <br />
@@ -73,7 +62,9 @@ Installation to the BIG-IP is simple. The only constraint is that the certificat
 <br />
 
 ------------
-### ${\textbf{\color{blue}Configuration\ Details}}$
+<!-- ### ${\textbf{\color{blue}Configuration\ Details}}$ --->
+${\LARGE{\textnormal{\textbf{\color{blue}Configuration\ Details}}}}$
+
 Configuration options for this utility are found in the following locations:
 
 <details>
@@ -186,7 +177,9 @@ where:
 <br />
 
 ------------
-### ${\textbf{\color{blue}ACME\ Protocol\ Flow}}$
+<!-- ### ${\textbf{\color{blue}ACME\ Protocol\ Flow}}$ --->
+${\LARGE{\textnormal{\textbf{\color{blue}ACME\ Protocol\ Flow}}}}$
+
 Provided below are detailed descriptions of the control flows. The **ACME Utility Architecture** section describes the files and folders in use. The **ACME Functional Flow on BIG-IP** section describes the interaction of ```f5acmehandler``` and ACME client processes. The **ACME Protocol Flow Reference** details the general ACMEv2 protocol flow per [RFC8555](https://datatracker.ietf.org/doc/html/rfc8555).
 
 <details>
@@ -263,7 +256,9 @@ The ACMEv2 protocol process is expertly described in the following diagram
 <br />
 
 ------------
-### ${\textbf{\color{blue}Additional\ Configuration\ Options}}$
+<!-- ### ${\textbf{\color{blue}Additional\ Configuration\ Options}}$ --->
+${\LARGE{\textnormal{\textbf{\color{blue}Additional\ Configuration\ Options}}}}$
+
 Below are descriptions of additional features and environment options.
 
 <details>
@@ -413,7 +408,8 @@ curl -s https://raw.githubusercontent.com/kevingstewart/f5acmehandler-bash/main/
 
 
 ------------
-### ${\textbf{\color{blue}Troubleshooting}}$
+<!-- ### ${\textbf{\color{blue}Troubleshooting}}$ --->
+${\LARGE{\textnormal{\textbf{\color{blue}Troubleshooting}}}}$
 
 <details>
 <summary><b>Error Messaging</b></summary>
@@ -449,7 +445,9 @@ Below are a common set of steps for troubleshooting utility operations:
 <br />
 
 ------------
-### ${\textbf{\color{blue}Testing}}$
+<!-- ### ${\textbf{\color{blue}Testing}}$ --->
+${\LARGE{\textnormal{\textbf{\color{blue}Testing}}}}$
+
 There are a number of ways to test the ```f5acmehandler``` utility, including validation against local ACME services. The **acme-servers** folder contains Docker-Compose options for spinning up local **Smallstep Step-CA** and **Pebble** ACME servers. The following describes a very simple testing scenario using one of these tools.
 
 * On the BIG-IP, install the f5acmehandler utility components on the BIG-IP instance. SSH to the BIG-IP shell and run the following command:
@@ -498,7 +496,9 @@ There are a number of ways to test the ```f5acmehandler``` utility, including va
 <br />
 
 ------------
-### ${\textbf{\color{blue}Credits}}$
+<!-- ### ${\textbf{\color{blue}Credits}}$ --->
+${\LARGE{\textnormal{\textbf{\color{blue}Credits}}}}$
+
 Special thanks to: 
 - [@f5-rahm](https://github.com/f5-rahm) and his [lets-encrypt-python](https://github.com/f5devcentral/lets-encrypt-python) project for inspiration
 - [@Lukas2511](https://github.com/Lukas2511) for the [dehydrated ACME client utility](https://github.com/dehydrated-io/dehydrated)
