@@ -4,7 +4,18 @@
 
 ### ${\textbf{\color{orangered}Draft:\ In\ Development}}$
 
-### ${\color{orangered}Draft:\ In\ Development}$
+${\LARGE{\textnormal{\textbf{\color{orangered}Draft:\ In\ Development}}}}$
+
+${\LARGE{\textrm{\textbf{\color{orangered}Draft:\ In\ Development}}}}$
+
+<div style="color: #ff3300; font-family: Courier; font-size: 2em;">INSPIRATION DAY 1</div>
+
+<div style="color: #ff3300; font-family: Helvetica; font-size: 2em;">INSPIRATION DAY 2</div>
+
+<div style="color: #ff3300; font-family: Verdana; font-size: 2em;">INSPIRATION DAY 3</div>
+
+<div style="color: #ff3300; font-family: Times New Roman; font-size: 2em;">INSPIRATION DAY 4</div>
+
 
 This project defines a set of utility functions for the [Dehydrated](https://github.com/dehydrated-io/dehydrated) ACMEv2 client, supporting direct integration with F5 BIG-IP, and including additional advanced features:
 
