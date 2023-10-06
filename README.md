@@ -192,6 +192,7 @@ The f5acmehandler utility contains the following files and folders in the ```/sh
 | accounts/        | The Folder containing registration information (subfolders) for each ACME provider.                                            |
 | certs/           | The Folder for ephemeral certificate information (CSRs, certificates), cleared after each ACME renewal operation.              |
 | config           | A text file containing the client configuration. Multiple provider-specific config files may be created as needed.             |
+| config_reporting | A text file containing the smtp reporting configuration.                                                                       |
 | dehydrated       | The ACME client script.                                                                                                        |
 | f5acmehandler.sh | The ACME client wrapper utility script. This is the script that gets scheduled, and handles all renewal processing.            |
 | f5hook.sh        | The ACME client hook script. This script is called by the ACME client to handle deploy challenge and clean challenge actions.  |
@@ -386,7 +387,36 @@ Working with BIG-IQ primarily involves "Script Management", and can broken down 
 
 <details>
 <summary><b>Reporting</b></summary>
-In development...
+
+The f5acmehandler utility can generate reports on renewal functions and send an email via SMTP configuration. This configuration is stored in the ```/shared/acme/config_reporting``` file:
+
+| **Value Options** | **Description**                                                                                                                                                                                                                                       |
+|-------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ENABLE_REPORTING  | Set to 'true' to enable EMAIL reporting.                                                                                                                                                                                                              |
+| MAILHUB           | Set this to the email SMTP host and port. Example: smtp.sendgrid.net:587                                                                                                                                                                              |
+| USERSTARTTLS      | Set this to 'yes' to enable StartTLS, as required by the SMTP server.                                                                                                                                                                                 |
+| USETLS            | Set this to 'yes' to enable SSL/TLS, as required by the SMTP server.                                                                                                                                                                                  |
+| AUTHUSER          | Set the username if the SMTP server requires authentication. No quotation marks needed here.                                                                                                                                                          |
+| AUTHPASS          | Set the user password if the SMTP server requires authentication. No quotation marks needed here.                                                                                                                                                     |
+| REPORT_FROM       | Set the email address of the sender.                                                                                                                                                                                                                  |
+| REPORT_TO         | Set the email address of the receiver.                                                                                                                                                                                                                |
+| REPORT_SUBJECT    | Set the email Subject line.                                                                                                                                                                                                                           |
+| TLS_CA_FILE       | Set this to the local path of a CA certificate bundle file for validating the SMTP server certificate. The install script automatically copies the ca-bundle.crt file to the local working directory, so this would be '/shared/acme/ca-default.crt'. |
+| FROMLINEOVERRIDE  | Set to 'yes' to override the From line. This is needed by the utility script.                                                                                                                                                                         |
+
+<br />
+
+With the above settings defined, you can test the SMTP config from the BIG-IP command line with the following:
+
+```
+echo -e "From: <sender email address>\nSubject: Test Email\n\nTest Email" | ssmtp -v -C /shared/acme/config_reporting <receiver email address>
+```
+
+Verbosity is set in the ssmtp command so the full transaction will dump to stdout for troubleshooting.
+
+
+<br />
+
 </details>
 
 <details>
