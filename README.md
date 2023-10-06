@@ -14,8 +14,8 @@ This project defines a set of utility functions for the [Dehydrated](https://git
 * Supports explicit proxy egress
 * Supports SAN certificate renewal
 * Supports granular scheduling
-* Supports high availability
 * Supports SMTP Reporting
+* Supports high availability
 * Supports debug logging
 
 <br />
