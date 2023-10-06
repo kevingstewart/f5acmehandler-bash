@@ -2,7 +2,7 @@
 
 ## F5 BIG-IP ACME Client (Dehydrated) Handler Utility
 ## Maintainer: kevin-at-f5-dot-com
-## Version: 20230901-1
+## Version: 20231006-1
 ## Description: Wrapper utility script for Dehydrated ACME client
 ## 
 ## Configuration and installation: 
@@ -31,7 +31,20 @@ SINGLEDOMAIN=""
 VERBOSE="no"
 ACCTSTATEEXISTS="no"
 CONFSTATEEXISTS="no"
+THISCONFIG=""
 SAVECONFIG="no"
+ENABLE_REPORTING=false
+MAILHUB=""
+USESTARTTLS=no
+USETLS=no
+AUTHUSER=""
+AUTHPASS=""
+TLS_CA_FILE=""
+REPORT_FROM=""
+REPORT_TO=""
+REPORT_SUBJECT=""
+FROMLINEOVERRIDE=no
+REPORT=""
 
 
 ## Function: process_errors --> print error and debug logs to the log file
@@ -42,6 +55,23 @@ process_errors () {
    if [[ "$ERR" =~ ^"DEBUG" && "$DEBUGLOG" == "true" ]]; then echo -e ">> [${timestamp}]  ${ERR}" >> ${LOGFILE}; fi
    if [[ "$ERR" =~ ^"PANIC" ]]; then echo -e ">> [${timestamp}]  ${ERR}" >> ${LOGFILE}; fi
    if [[ "$VERBOSE" == "yes" ]]; then echo -e ">> [${timestamp}]  ${ERR}"; fi
+}
+
+
+## Function: process_report --> generate and send report via SMTP (requires)
+process_report () {
+   local TMPREPORT="${1}"
+
+   ## Only process reporting if config_reporting file exists and ENABLE_REPORTING is true
+   if [[ -f "${ACMEDIR}/config_reporting" ]]
+   then
+      . "${ACMEDIR}/config_reporting"
+      if [[ "$ENABLE_REPORTING" == "true" ]]
+      then
+         # echo -e "From: ${REPORT_FROM}\nSubject: ${REPORT_SUBJECT}\n\n$(echo -e $(cat ${TMPREPORT})\n\n)"
+         echo -e "From: ${REPORT_FROM}\nSubject: ${REPORT_SUBJECT}\n\n$(echo -e $(cat ${TMPREPORT}))" | ssmtp -C "${ACMEDIR}/config_reporting" "${REPORT_TO}"
+      fi   
+   fi
 }
 
 
@@ -88,6 +118,7 @@ process_config_file() {
       if [[ ! -f "${THIS_COMMAND_CONFIG}" ]]
       then
          process_errors "PANIC: Specified config file for (${DOMAIN}) does not exist (${THIS_COMMAND_CONFIG})\n"
+         echo "    PANIC: Specified config file for (${DOMAIN}) does not exist (${THIS_COMMAND_CONFIG})." >> ${REPORT}
          continue
       else
          . "${THIS_COMMAND_CONFIG}"
@@ -118,13 +149,14 @@ generate_new_cert_key() {
    ## Trigger ACME client. All BIG-IP certificate management is then handled by the hook script
    cmd="${ACMEDIR}/dehydrated ${STANDARD_OPTIONS} -c -g -d ${DOMAIN} $(echo ${COMMAND} | tr -d '"')"
    process_errors "DEBUG (handler: ACME client command):\n$cmd\n"
-   do=$(eval $cmd 2>&1 | cat | sed 's/^/    /')
+   do=$(REPORT=${REPORT} eval $cmd 2>&1 | cat | sed 's/^/    /')
    process_errors "DEBUG (handler: ACME client output):\n$do\n"
 
    ## Catch connectivity errors
    if [[ $do =~ "ERROR: Problem connecting to server" ]]
    then
       process_errors "PANIC: Connectivity error for (${DOMAIN}). Please verify configuration (${COMMAND}).\n\n"
+      echo "    PANIC: Connectivity error for (${DOMAIN}). Please verify configuration (${COMMAND})." >> ${REPORT}
       continue
    fi
 }
@@ -168,6 +200,7 @@ generate_cert_from_csr() {
    if [[ $do =~ "ERROR: Problem connecting to server" ]]
    then
       process_errors "PANIC: Connectivity error for (${DOMAIN}). Please verify configuration (${COMMAND}).\n\n"
+      echo "    PANIC: Connectivity error for (${DOMAIN}). Please verify configuration (${COMMAND})." >> ${REPORT}
       continue
    fi
 
@@ -191,6 +224,7 @@ generate_cert_from_csr() {
       echo submit cli transaction
    ) | tmsh > /dev/null 2>&1
    process_errors "DEBUG (handler: tmsh transaction) Installed certificate via tmsh transaction\n"
+   echo "    Installed certificate via tmsh transaction." >> ${REPORT}
 
    ## Clean up objects
    tmsh delete sys crypto csr ${DOMAIN}
@@ -204,7 +238,7 @@ process_handler_config () {
 
    ## Split input line into {DOMAIN} and {COMMAND} variables.
    IFS="=" read -r DOMAIN COMMAND <<< $1
-
+   
    ## Pull values from default or defined config file
    process_config_file "$COMMAND"
 
@@ -216,6 +250,8 @@ process_handler_config () {
       process_errors "DEBUG (handler function: process_handler_config)\n   --domain argument specified for ($DOMAIN).\n"
    fi
 
+   echo "\n    Processing for domain: ${DOMAIN}" >> ${REPORT}
+
 
    ######################
    ### VALIDATION CHECKS
@@ -226,6 +262,7 @@ process_handler_config () {
    if [[ ! "$DOMAIN" =~ $dom_regex ]]
    then
       process_errors "PANIC: Configuration entry ($DOMAIN) is incorrect. Skipping.\n"
+      echo "    PANIC: Configuration entry ($DOMAIN) is incorrect. Skipping." >> ${REPORT}
       continue 
    fi
 
@@ -233,6 +270,7 @@ process_handler_config () {
    if [[ ! "$COMMAND" =~ "--ca " ]]
    then
       process_errors "PANIC: Configuration entry for ($DOMAIN) must include a \"--ca\" option. Skipping.\n"
+      echo "    PANIC: Configuration entry for ($DOMAIN) must include a \"--ca\" option. Skipping." >> ${REPORT}
       continue 
    fi
 
@@ -240,6 +278,7 @@ process_handler_config () {
    if [[ "$(process_check_registered $COMMAND)" == "notfound" ]]
    then
       process_errors "DEBUG: Defined ACME provider not registered. Registering.\n"
+      echo "    Defined ACME provider not registered. Registering." >> ${REPORT}
 
       ## Extract --ca and --config values
       COMMAND_CA=$(echo "$COMMAND" | sed -E 's/.*(--ca+\s[^[:space:]]+).*/\1/g;s/"//g')
@@ -262,16 +301,19 @@ process_handler_config () {
    if [[ "$certexists" == "false" || "$ALWAYS_GENERATE_KEY" == "true" ]]
    then
       process_errors "DEBUG: Certificate does not exist, or ALWAYS_GENERATE_KEY is true --> call generate_new_cert_key.\n"
+      echo "    Certificate does not exist, or ALWAYS_GENERATE_KEY is true. Generating a new cert and key." >> ${REPORT}
       generate_new_cert_key "$DOMAIN" "$COMMAND"
    
    elif [[ "$certexists" == "true" && "$CHECK_REVOCATION" == "true" && "$(process_revocation_check "${DOMAIN}")" == "revoked" ]]
    then
       process_errors "DEBUG: Certificate exists, CHECK_REVOCATION is enabled, and revocation check found that (${DOMAIN}) is revoked -- Fetching new certificate and key"
+      echo "    Certificate exists, CHECK_REVOCATION is enabled, and revocation check found that (${DOMAIN}) is revoked -- Fetching new certificate and key." >> ${REPORT}
       generate_new_cert_key "$DOMAIN" "$COMMAND"
    
    else
       ## Else call the generate_cert_from_csr function
       process_errors "DEBUG: Certificate exists and ALWAYS_GENERATE_KEY is false --> call generate_cert_from_csr.\n"
+      echo "    Certificate exists and ALWAYS_GENERATE_KEY is false --> call generate_cert_from_csr." >> ${REPORT}
 
       ## Collect today's date and certificate expiration date
       if [[ ! "${FORCERENEW}" == "yes" ]]
@@ -292,7 +334,8 @@ process_handler_config () {
          process_errors "DEBUG (handler: threshold) THRESHOLD ($THRESHOLD) -le date_test ($date_test) - Starting renewal process for ${DOMAIN}\n"
          generate_cert_from_csr "$DOMAIN" "$COMMAND"
       else
-         process_errors "DEBUG (handler: bypass) Bypassing renewal process for ${DOMAIN} - Certificate within threshold\n"
+         process_errors "DEBUG (handler: bypass) Bypassing renewal process for ${DOMAIN} - Certificate within threshold.\n"
+         echo "    Bypassing renewal process for ${DOMAIN} - Certificate within threshold." >> ${REPORT}
          #return
       fi
    fi
@@ -521,6 +564,8 @@ process_handler_main() {
    ACTIVE=$(tmsh show cm failover-status | grep ACTIVE | wc -l)
    if [[ "${ACTIVE}" = "1" ]]
    then
+      echo "\n  Processing renewals:" >> ${REPORT}
+
       ## Call process_get_configs to retrieve centrally stored iFile state data into the local folder
       process_get_configs
 
@@ -534,13 +579,16 @@ process_handler_main() {
          IFS=";" && for v in $(tmsh list ltm data-group internal dg_acme_config one-line | sed -e 's/ltm data-group internal dg_acme_config { records { //;s/ \} type string \}//;s/ { data /=/g;s/ \} /;/g;s/ \}//'); do process_handler_config $v; done
       else
          process_errors "PANIC: There was an error accessing the dg_acme_config data group. Please re-install.\n"
+         echo "    PANIC: There was an error accessing the dg_acme_config data group" >> ${REPORT}
          exit 1
       fi
 
       ## Call process_put_configs to push local state data into central iFile store
       process_put_configs
-   fi
 
+      process_report "${REPORT}"
+      # echo -e "$(cat ${REPORT})"
+   fi
    return 0
 }
 
@@ -614,14 +662,17 @@ main() {
            ;;
 
          --force)
+           echo "  Command Line Option Specified: --force" >> ${REPORT}
            FORCERENEW="yes"
            ;;
 
          --save)
+           echo "  Command Line Option Specified: --save" >> ${REPORT} 
            SAVECONFIG="yes"
            ;;
 
          --verbose)
+           echo "  Command Line Option Specified: --verbose" >> ${REPORT}
            VERBOSE="yes"
            ;;
 
@@ -633,6 +684,7 @@ main() {
              command_help >&2
              exit 1
            fi
+           echo "  Command Line Option Specified: --domain ${1}" >> ${REPORT}
            SINGLEDOMAIN="${1}"
            ;;
 
@@ -649,6 +701,8 @@ main() {
 
 
 ## Script entry
+REPORT=$(mktemp)
+echo "ACMEv2 Renewal Report: $(date)\n\n" > ${REPORT}
 main "${@:-}"
 
 
