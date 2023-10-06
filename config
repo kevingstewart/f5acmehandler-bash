@@ -1,9 +1,12 @@
 ## F5 BIG-IP ACME Client (Dehydrated) Configuration File
 ## Maintainer: kevin-at-f5-dot-com
-## Version: 20230824-3
+## Version: 20231006-1
 ## Description: Contains per-provider ACME client configuration settings
 
 
+
+########################################################
+## COMMON SETTINGS #####################################
 ########################################################
 
 # Extra options passed to the curl binary (default: <unset>)
@@ -39,7 +42,7 @@ CHECK_REVOCATION=false
 ERRORLOG=true
 
 ## Set to true to generate debug logging (default: false)
-DEBUGLOG=false
+DEBUGLOG=true
 
 
 
@@ -81,8 +84,6 @@ WELLKNOWN="/tmp/wellknown"
 # Program or function called in certain situations
 # BASEDIR and WELLKNOWN variables are exported and can be used in an external program
 HOOK=${BASEDIR}/f5hook.sh
-
-
 
 
 
