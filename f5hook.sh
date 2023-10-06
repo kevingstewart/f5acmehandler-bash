@@ -2,7 +2,7 @@
 
 ## F5 BIG-IP ACME Client (Dehydrated) Hook Script
 ## Maintainer: kevin-at-f5-dot-com
-## Version: 20230901-1
+## Version: 20231006-1
 ## Description: ACME client hook script used for staging ACME http-01 challenge response, then cleanup
 
 
@@ -63,7 +63,8 @@ deploy_cert() {
     ## Import new cert and key
     local DOMAIN="${1}" KEYFILE="${2}" CERTFILE="${3}" FULLCHAINFILE="${4}" CHAINFILE="${5}" TIMESTAMP="${6}"
     process_errors "DEBUG (hook function: deploy_cert)\n   DOMAIN=${DOMAIN}\n   KEYFILE=${KEYFILE}\n   CERTFILE=${CERTFILE}\n   FULLCHAINFILE=${FULLCHAINFILE}\n   CHAINFILE=${CHAINFILE}\n   TIMESTAMP=${TIMESTAMP}\n"
-    
+        
+
     ## Test if cert and key exist
     key=true && [[ "$(tmsh list sys file ssl-key ${DOMAIN} 2>&1)" =~ "was not found" ]] && key=false
     cert=true && [[ "$(tmsh list sys file ssl-cert ${DOMAIN} 2>&1)" =~ "was not found" ]] && cert=false
@@ -74,6 +75,7 @@ deploy_cert() {
         then
             ## Create transaction to update existing cert and key
             process_errors "DEBUG (hook function: deploy_cert -> Updating existing cert and key)\n"
+            echo "    Updating existing cert and key." >> ${REPORT}
             (echo create cli transaction
             echo install sys crypto key ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/privkey.pem
             echo install sys crypto cert ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/fullchain.pem
@@ -82,6 +84,7 @@ deploy_cert() {
         else
             ## Create transaction to update existing cert and key
             process_errors "DEBUG (hook function: deploy_cert -> Updating existing cert and key)\n"
+            echo "    Updating existing cert and key." >> ${REPORT}
             (echo create cli transaction
             echo install sys crypto key ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/privkey.pem
             echo install sys crypto cert ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/cert.pem
@@ -93,10 +96,12 @@ deploy_cert() {
         then
             ## Create cert and key
             process_errors "DEBUG (hook function: deploy_cert -> Installing new cert and key)\n"
+            echo "    Installing new cert and key." >> ${REPORT}
             tmsh install sys crypto key ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/privkey.pem
             tmsh install sys crypto cert ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/fullchain.pem
         else
             process_errors "DEBUG (hook function: deploy_cert -> Installing new cert and key)\n"
+            echo "    Installing new cert and key." >> ${REPORT}
             tmsh install sys crypto key ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/privkey.pem
             tmsh install sys crypto cert ${DOMAIN} from-local-file ${ACMEDIR}/certs/${DOMAIN}/cert.pem
         fi
