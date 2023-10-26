@@ -4,6 +4,9 @@
 
 ${\LARGE{\textnormal{\textbf{\color{orangered}Draft:\ In\ Development}}}}$
 
+Main copy of the project has moved to here: https://github.com/f5devcentral/kojot-acme/
+
+
 This project defines a set of utility functions for the [Dehydrated](https://github.com/dehydrated-io/dehydrated) ACMEv2 client, supporting direct integration with F5 BIG-IP, and including additional advanced features:
 
 * Simple installation, configuration, and scheduling
