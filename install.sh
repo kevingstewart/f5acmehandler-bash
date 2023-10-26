@@ -8,8 +8,8 @@
 ## Usage:
 ## - Execute: curl -s https://<this-repo-url>/install.sh | bash
 ##
-##   Optionally include --proxy argument to specify an egress proxy
-##            curl -s https://<this-repo-url>/install.sh --proxy 172.16.1.144:3128 | bash
+##   Optionally include --proxy argument to specify an egress proxy (note double set of double-dashes)
+##            curl -s https://<this-repo-url>/install.sh | bash -s -- --proxy 172.16.1.144:3128
 
 
 ## Set download paths
