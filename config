@@ -1,6 +1,6 @@
 ## F5 BIG-IP ACME Client (Dehydrated) Configuration File
 ## Maintainer: kevin-at-f5-dot-com
-## Version: 20231006-1
+## Version: 20231206-1
 ## Description: Contains per-provider ACME client configuration settings
 
 
