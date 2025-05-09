@@ -6,7 +6,7 @@
 ## Issues: https://github.com/f5devcentral/kojot-acme/issues
 ## Add the following information to your provider config file:
 ##   DNSAPI=dns_pointhq
-##   PointHQ_Key='37afffe3fd091a2e8bede63addsdaq23d3'   <-- Your PointHQ API Key
+##   PointHQ_Key='37afffe3fd091a2e8bede63addsdaq23d3fd8dww'   <-- Your PointHQ API Key
 ##   PointHQ_Email="admin@example.com"                  <-- YOur PointHQ email address
 
 dns_pointhq_info='pointhq.com PointDNS
