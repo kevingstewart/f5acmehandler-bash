@@ -6,7 +6,7 @@
 ## Issues: https://github.com/f5devcentral/kojot-acme/issues
 ## Add the following information to your provider config file:
 ##   DNSAPI=dns_desec
-##   DDNSS_Token='jqOSwe32erx23dc34fdcscxverg4513d'      <-- Your deSEC.io token
+##   DDNSS_Token='jqOSwe32erx23dc34fdcscxverg4513ddd8du3'      <-- Your deSEC.io token
 
 dns_desec_info='deSEC.io
 Site: desec.readthedocs.io/en/latest/
